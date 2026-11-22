@@ -96,6 +96,19 @@ const backfillTitles = () => {
 setTimeout(backfillTitles, 8000);
 // build the cross-language sound index now (~15 s once), so the first English/Tamil question is answered quickly
 setTimeout(() => knowledge.search("kundalini dhyana").catch(() => {}), 12_000);
+// ...and again whenever newly read books arrive (a book that was just read had no sound index yet, and the first
+// visitor question then paid for building it: one question waited 11 s). Checked every minute, built only on change.
+{
+  let sig = "";
+  setInterval(() => {
+    const list = knowledge.books().filter((b) => b.searchable);
+    const now = `${list.length}:${list.reduce((s, b) => s + (b.chars || 0), 0)}`;
+    if (now === sig || local.visitorWaiting()) return;
+    sig = now;
+    const t = Date.now();
+    knowledge.search("kundalini dhyana yoga").then(() => { if (Date.now() - t > 2000) console.log(`[search] index ready for new books (${Math.round((Date.now() - t) / 1000)} s)`); }).catch(() => {});
+  }, 60_000).unref();
+}
 setInterval(backfillTitles, 5 * 60 * 1000).unref();
 // The AI model is used only when a key exists and CHAT_ENABLED isn't "false"; otherwise answers come from the books.
 // If Anthropic says "no credits" or the key is wrong, skip the AI for 10 minutes (answers come from the books),
