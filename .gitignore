@@ -1,0 +1,9 @@
+node_modules/
+.env
+design/
+library/
+tools/
+tts-cache/
+.vscode/
+*.log
+*.tmp

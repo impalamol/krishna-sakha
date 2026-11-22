@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Krishna Sakha — AI Guide to Hindu Dharma</title>
+  <meta name="description" content="Talk with Krishna Sakha, an AI scholar of Hindu Dharma: the Vedas, Upanishads, Puranas, Itihasa and Ayurveda, who also helps with everyday life." />
+  <meta name="theme-color" content="#020617" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ================= AVATAR STAGE ================= -->
+    <section class="stage" id="stage" aria-label="Krishna Sakha avatar">
+      <canvas id="halo" aria-hidden="true"></canvas>
+      <!-- the page he is reading right now (white paper removed by blending; see styles.css .glimpse) -->
+      <div class="glimpse" id="glimpse" aria-hidden="true"><img alt="" /><img alt="" /></div>
+
+      <svg id="avatar" viewBox="92 14 216 316" role="img" aria-label="Krishna Sakha, the glowing face of a holographic rishi">
+        <defs>
+          <radialGradient id="skin" cx="0.5" cy="0.4" r="0.65">
+            <stop offset="0" stop-color="#5cc8ff" />
+            <stop offset="0.55" stop-color="#2a7fe0" />
+            <stop offset="1" stop-color="#0d3486" />
+          </radialGradient>
+          <linearGradient id="skinBody" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2a7fe0" />
+            <stop offset="0.6" stop-color="#123f9c" />
+            <stop offset="1" stop-color="#071a52" stop-opacity="0.2" />
+          </linearGradient>
+          <linearGradient id="hair" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#cfefff" />
+            <stop offset="1" stop-color="#4f95e0" />
+          </linearGradient>
+          <linearGradient id="beardG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#d9f3ff" />
+            <stop offset="0.6" stop-color="#7fbdf2" />
+            <stop offset="1" stop-color="#2c66c4" stop-opacity="0.85" />
+          </linearGradient>
+          <radialGradient id="irisG" cx="0.45" cy="0.4" r="0.7">
+            <stop offset="0" stop-color="#e6fbff" />
+            <stop offset="0.5" stop-color="#5fd4ff" />
+            <stop offset="1" stop-color="#1667c9" />
+          </radialGradient>
+          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+            <rect width="4" height="1.2" fill="#9fe6ff" opacity="0.10" />
+          </pattern>
+          <clipPath id="eyeClipL"><path id="eyeShapeL" d="M158,165 C164,157 184,157 190,165 C184,171 164,171 158,165 Z" /></clipPath>
+          <clipPath id="eyeClipR"><path id="eyeShapeR" d="M210,165 C216,157 236,157 242,165 C236,171 216,171 210,165 Z" /></clipPath>
+          <clipPath id="mouthClip"><path id="mouthClipPath" d="" /></clipPath>
+          <!-- whole silhouette: verses and scanlines are drawn only inside it -->
+          <clipPath id="figureClip">
+            <path d="M200,96 C246,96 270,130 270,174 C270,206 262,232 246,250 C232,264 216,270 200,270 C184,270 168,264 154,250 C138,232 130,206 130,174 C130,130 154,96 200,96 Z" />
+            <path d="M134,196 C132,250 146,312 166,358 C180,390 192,410 200,418 C208,410 220,390 234,358 C254,312 268,250 266,196 Z" />
+            <path d="M128,180 C122,116 156,80 200,78 C244,80 278,116 272,180 Z" />
+            <ellipse cx="200" cy="66" rx="31" ry="25" />
+            <ellipse cx="200" cy="42" rx="19" ry="15" />
+            <path d="M136,150 C112,200 106,262 114,336 L152,340 C140,282 138,222 148,172 Z M264,150 C288,200 294,262 286,336 L248,340 C260,282 262,222 252,172 Z" />
+          </clipPath>
+        </defs>
+
+        <g id="headGroup">
+          <!-- long hair behind the shoulders -->
+          <path d="M136,150 C112,200 106,262 114,336 C124,346 140,348 152,340 C140,282 138,222 148,172 Z" fill="#3f86d8" opacity="0.8" />
+          <path d="M264,150 C288,200 294,262 286,336 C276,346 260,348 248,340 C260,282 262,222 252,172 Z" fill="#3f86d8" opacity="0.8" />
+
+          <!-- ears -->
+          <path d="M134,168 C121,163 117,186 123,201 C127,211 135,213 139,206 Z" fill="#2569cc" />
+          <path d="M266,168 C279,163 283,186 277,201 C273,211 265,213 261,206 Z" fill="#2569cc" />
+
+          <!-- face -->
+          <path id="headShape" d="M200,96 C246,96 270,130 270,174 C270,206 262,232 246,250 C232,264 216,270 200,270 C184,270 168,264 154,250 C138,232 130,206 130,174 C130,130 154,96 200,96 Z" fill="url(#skin)" />
+          <path d="M160,128 C176,124 224,124 240,128 M166,138 C180,135 220,135 234,138" fill="none" stroke="#9fe6ff" stroke-opacity="0.3" stroke-width="1.2" />
+
+          <!-- brows -->
+          <path id="browL" d="M154,152 C164,144 180,144 192,150" fill="none" stroke="#d6f4ff" stroke-width="5.5" stroke-linecap="round" />
+          <path id="browR" d="M208,150 C220,144 236,144 246,152" fill="none" stroke="#d6f4ff" stroke-width="5.5" stroke-linecap="round" />
+
+          <!-- eyes (glowing) -->
+          <g id="eyeL" filter="url(#softGlow)">
+            <use href="#eyeShapeL" fill="#bfeaff" />
+            <g clip-path="url(#eyeClipL)">
+              <g class="pupil">
+                <circle cx="174" cy="164.5" r="5.8" fill="url(#irisG)" />
+                <circle cx="174" cy="164.5" r="2.3" fill="#04204f" />
+                <circle cx="172.3" cy="162.8" r="1.4" fill="#fff" />
+              </g>
+              <rect class="lid" x="152" y="155" width="44" height="0" fill="#2a7fe0" />
+            </g>
+            <path d="M158,165 C164,157 184,157 190,165" fill="none" stroke="#031a4a" stroke-width="2.2" stroke-linecap="round" />
+          </g>
+          <g id="eyeR" filter="url(#softGlow)">
+            <use href="#eyeShapeR" fill="#bfeaff" />
+            <g clip-path="url(#eyeClipR)">
+              <g class="pupil">
+                <circle cx="226" cy="164.5" r="5.8" fill="url(#irisG)" />
+                <circle cx="226" cy="164.5" r="2.3" fill="#04204f" />
+                <circle cx="224.3" cy="162.8" r="1.4" fill="#fff" />
+              </g>
+              <rect class="lid" x="204" y="155" width="44" height="0" fill="#2a7fe0" />
+            </g>
+            <path d="M210,165 C216,157 236,157 242,165" fill="none" stroke="#031a4a" stroke-width="2.2" stroke-linecap="round" />
+          </g>
+
+          <!-- tilak of light -->
+          <g id="tilak" filter="url(#softGlow)">
+            <path d="M192,168 C189,148 189,126 191,108 M208,168 C211,148 211,126 209,108 M192,168 Q200,176 208,168"
+              fill="none" stroke="#eafaff" stroke-width="3" stroke-linecap="round" />
+            <path id="bindu" d="M200,112 L200,166" stroke="#7fe8ff" stroke-width="2.6" stroke-linecap="round" />
+          </g>
+
+          <!-- nose -->
+          <path d="M195,172 C193,192 188,203 186,209" fill="none" stroke="#9fe6ff" stroke-opacity="0.55" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M186,211 C191,218 196,216 200,219 C204,216 209,218 214,211" fill="none" stroke="#0a2a6e" stroke-width="2" stroke-linecap="round" />
+
+          <!-- mouth (paths rewritten every frame by avatar.js) -->
+          <g id="mouth">
+            <path id="mouthCavity" fill="#020b2a" />
+            <g clip-path="url(#mouthClip)">
+              <rect id="teeth" x="180" y="236" width="40" height="0" fill="#cfefff" />
+            </g>
+            <path id="lipLowerPath" fill="#3f8fe6" />
+            <path id="lipShine" fill="#ffffff" opacity="0.25" />
+          </g>
+
+          <!-- beard (moves with the jaw) -->
+          <g id="beard">
+            <path d="M134,196 C132,250 146,312 166,358 C180,390 192,410 200,418 C208,410 220,390 234,358 C254,312 268,250 266,196 C258,226 246,246 230,253 C218,259 182,259 170,253 C154,246 142,226 134,196 Z" fill="url(#beardG)" opacity="0.92" />
+            <path d="M160,270 C166,310 178,350 194,396 M180,262 C184,300 190,340 198,404 M220,262 C216,300 210,340 202,404 M240,270 C234,310 222,350 206,396 M146,232 C150,270 158,300 170,330 M254,232 C250,270 242,300 230,330"
+              fill="none" stroke="#1d5bd8" stroke-opacity="0.5" stroke-width="1.5" stroke-linecap="round" />
+          </g>
+
+          <!-- moustache -->
+          <path d="M200,226 C188,221 170,223 158,232 C150,238 142,240 136,234 C142,250 162,248 176,240 C186,235 194,234 200,236 C206,234 214,235 224,240 C238,248 258,250 264,234 C258,240 250,238 242,232 C230,223 212,221 200,226 Z" fill="url(#beardG)" />
+
+          <!-- hair cap -->
+          <path d="M128,180 C122,116 156,80 200,78 C244,80 278,116 272,180 C266,150 256,130 240,120 C224,112 176,112 160,120 C144,130 134,150 128,180 Z" fill="url(#hair)" opacity="0.95" />
+          <path d="M150,104 C170,96 230,96 250,104 M140,130 C152,112 172,104 190,102 M260,130 C248,112 228,104 210,102" fill="none" stroke="#2c66c4" stroke-opacity="0.5" stroke-width="1.3" />
+
+          <!-- jata (top knot) with rudraksha of light -->
+          <ellipse cx="200" cy="66" rx="31" ry="25" fill="url(#hair)" />
+          <ellipse cx="200" cy="42" rx="19" ry="15" fill="url(#hair)" />
+          <ellipse cx="200" cy="27" rx="9" ry="8" fill="#e6f7ff" />
+          <g fill="none" stroke-linecap="round" stroke-dasharray="0 8" stroke="#1c4fb0">
+            <path d="M171,62 Q200,77 229,62" stroke-width="6" />
+            <path d="M176,77 Q200,90 224,77" stroke-width="6" />
+            <path d="M183,42 Q200,52 217,42" stroke-width="5.5" />
+          </g>
+
+          <!-- hologram scanlines, only inside the silhouette -->
+          <g clip-path="url(#figureClip)" style="mix-blend-mode: screen">
+            <rect x="0" y="0" width="400" height="520" fill="url(#scan)" />
+          </g>
+          <!-- rim light -->
+          <path d="M200,96 C246,96 270,130 270,174 C270,206 262,232 246,250" fill="none" stroke="#bff0ff" stroke-opacity="0.35" stroke-width="2" filter="url(#softGlow)" />
+        </g>
+      </svg>
+
+      <div class="stage-fade" aria-hidden="true"></div>
+      <p class="caption" id="caption" aria-live="polite"></p>
+      <div class="identity">
+        <h1>KRISHNA SAKHA</h1>
+        <p id="statusLine" aria-live="polite">Scholar of Hindu Dharma · Daily-life guide</p>
+        <span class="learn-row"><p id="learnLine" class="learn-line" aria-live="polite" hidden></p><button type="button" id="resumeRead" class="resume-read" hidden>▶ Resume reading</button></span>
+      </div>
+    </section>
+
+    <!-- ================= CHAT PANEL ================= -->
+    <!-- camera: lets him see the visitor (face detection runs in the browser only) -->
+    <button class="cam-fab" id="camFab" type="button" aria-pressed="false" title="Let Krishna Sakha see you (camera stays on this device)" aria-label="Camera">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z" fill="currentColor"/></svg>
+    </button>
+    <div class="cam-box" id="camBox" hidden>
+      <video id="camVideo" playsinline muted></video>
+      <div class="cam-bar"><span id="camLabel">Camera</span><button type="button" id="camClose" aria-label="Turn camera off">✕</button></div>
+    </div>
+    <button class="voice-fab" id="voiceFab" type="button" aria-pressed="false" title="Talk with Krishna Sakha (voice chat)" aria-label="Start voice chat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" fill="currentColor"/></svg>
+      <span class="fab-label" id="voiceFabLabel">Talk</span>
+    </button>
+    <button class="panel-open" id="panelOpen" type="button" aria-controls="panel" aria-expanded="false" title="Open panel">
+      <span aria-hidden="true">☰</span><span class="lbl">Menu</span>
+    </button>
+    <section class="panel" id="panel" aria-label="Conversation" inert>
+      <header class="panel-head">
+        <div class="modes" role="toolbar" aria-label="Modes">
+          <button class="chip active" data-mode="">Ask</button>
+          <button class="chip" data-mode="TEACH ME">Teach Me</button>
+          <button class="chip" data-mode="SHLOKA BREAKDOWN">Shloka</button>
+          <button class="chip" data-mode="KATHA">Katha</button>
+          <button class="chip" data-mode="DEBATE">Debate</button>
+          <button class="chip" data-mode="DAILY SADHANA">Sadhana</button>
+          <button class="chip" data-mode="DAILY ASSISTANT">Daily Help</button>
+        </div>
+        <div class="head-actions">
+          <button class="icon-btn" id="muteBtn" title="Voice on/off" aria-pressed="false" aria-label="Toggle voice">🔊</button>
+          <button class="icon-btn" id="settingsBtn" title="Voice settings" aria-label="Voice settings">⚙</button>
+          <button class="icon-btn" id="knowBtn" title="What I've read: see my books and ask questions from them" aria-label="What I've read">📖</button>
+          <button class="icon-btn" id="libraryBtn" title="Library: upload books, media, folders and links (owner only)" aria-label="Open library">📚</button>
+          <button class="icon-btn" id="newChatBtn" title="Start a new conversation (clears this chat)" aria-label="New conversation">↺</button>
+          <button class="icon-btn" id="panelClose" title="Close panel" aria-label="Close panel">✕</button>
+        </div>
+      </header>
+
+      <div class="langs" id="langs" role="radiogroup" aria-label="Reply language">
+        <span class="langs-label">Language</span>
+        <button class="chip lang active" data-lang="auto" data-speech="auto" data-name="">Auto</button>
+        <button class="chip lang" data-lang="en" data-speech="en-IN" data-name="English">English</button>
+        <button class="chip lang" data-lang="hi" data-speech="hi-IN" data-name="Hindi">हिन्दी</button>
+        <button class="chip lang" data-lang="mr" data-speech="mr-IN" data-name="Marathi">मराठी</button>
+        <button class="chip lang" data-lang="sa" data-speech="hi-IN" data-name="Sanskrit (with simple Hindi explanation)">संस्कृतम्</button>
+        <button class="chip lang" data-lang="hinglish" data-speech="en-IN" data-name="Hinglish (Hindi in Roman letters)">Hinglish</button>
+        <button class="chip lang" data-lang="bn" data-speech="bn-IN" data-name="Bengali">বাংলা</button>
+        <button class="chip lang" data-lang="ta" data-speech="ta-IN" data-name="Tamil">தமிழ்</button>
+        <button class="chip lang" data-lang="te" data-speech="te-IN" data-name="Telugu">తెలుగు</button>
+        <button class="chip lang" data-lang="kn" data-speech="kn-IN" data-name="Kannada">ಕನ್ನಡ</button>
+        <button class="chip lang" data-lang="ml" data-speech="ml-IN" data-name="Malayalam">മലയാളം</button>
+        <button class="chip lang" data-lang="gu" data-speech="gu-IN" data-name="Gujarati">ગુજરાતી</button>
+        <button class="chip lang" data-lang="pa" data-speech="pa-IN" data-name="Punjabi">ਪੰਜਾਬੀ</button>
+        <button class="chip lang" data-lang="ur" data-speech="ur-IN" data-name="Urdu">اردو</button>
+      </div>
+
+      <div class="settings" id="settings" hidden>
+        <label>Voice engine
+          <select id="engineSelect">
+            <option value="natural">Natural (neural voice)</option>
+            <option value="browser">Browser built-in</option>
+          </select>
+        </label>
+        <p class="hint" id="engineInfo"></p>
+        <label>Speech language
+          <select id="langSelect">
+            <option value="auto">Auto (match reply)</option>
+            <option value="en-IN">English (India)</option>
+            <option value="hi-IN">हिन्दी</option>
+            <option value="mr-IN">मराठी</option>
+            <option value="bn-IN">বাংলা</option>
+            <option value="ta-IN">தமிழ்</option>
+            <option value="te-IN">తెలుగు</option>
+            <option value="kn-IN">ಕನ್ನಡ</option>
+            <option value="ml-IN">മലയാളം</option>
+            <option value="gu-IN">ગુજરાતી</option>
+            <option value="pa-IN">ਪੰਜਾਬੀ</option>
+            <option value="ur-IN">اردو</option>
+          </select>
+        </label>
+        <label>Voice
+          <select id="voiceSelect"><option value="">Auto (prefer male)</option></select>
+        </label>
+        <label>Pace <input type="range" id="rateRange" min="0.7" max="1.2" step="0.05" value="0.95" /></label>
+        <label>Depth <input type="range" id="pitchRange" min="0.6" max="1.1" step="0.05" value="0.85" /></label>
+        <p class="hint">"Voice" and "Depth" apply to the browser voice. Pace applies to both.</p>
+      </div>
+
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <div class="starters" id="starters">
+        <button>Which books have you read?</button>
+        <button>कुंडलिनी जागरण क्या है?</button>
+        <button>Tell me about the Gayatri mantra</button>
+        <button>ध्यान कैसे करें?</button>
+        <button>What do the Vedas say about Agni?</button>
+      </div>
+
+      <div class="chat-off" id="chatOff" hidden>
+        <div class="om-sm">ॐ</div>
+        <p id="chatOffText"><strong>Krishna Sakha is studying the scriptures.</strong><br />Conversations open soon. Meanwhile you can search everything he has already read.</p>
+        <button class="btn know-cta" type="button" data-open-know>📖 Ask from the books he has read</button>
+      </div>
+
+      <form class="composer" id="composer">
+        <button type="button" class="icon-btn mic" id="micBtn" title="Speak" aria-label="Speak your question">🎙</button>
+        <textarea id="input" rows="1" placeholder="Ask Krishna Sakha anything…" aria-label="Your message"></textarea>
+        <button type="submit" class="send" id="sendBtn" aria-label="Send">➤</button>
+      </form>
+      <p class="answer-mode" id="answerMode" hidden>📖 Answers come straight from the books Krishna Sakha has read, with book and page. His AI explanations are switched off for now.</p>
+      <p class="disclaimer">Krishna Sakha is an AI. It can make mistakes, so check important verses with a trusted text or teacher. Ayurveda answers are general information, not medical advice.</p>
+    </section>
+  </div>
+
+
+  <!-- What Krishna Sakha has read: list + ask (works without API credits) -->
+  <div class="modal" id="knowModal" hidden role="dialog" aria-modal="true" aria-labelledby="knowTitle">
+    <div class="modal-card know-card">
+      <header class="modal-head">
+        <h2 id="knowTitle">📖 What I've read</h2>
+        <button class="icon-btn" id="knowClose" aria-label="Close">✕</button>
+      </header>
+      <div class="know-top">
+        <p class="know-summary" id="knowSummary">Loading…</p>
+        <button class="btn ghost-btn" type="button" id="readToggle" title="Owner only: pause or resume reading the library">⏸ Pause reading</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" role="tab" aria-selected="true" data-tab="ask">Ask my books</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="books">📚 Books <span class="tab-n" data-n="books"></span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="audio">🎧 Audio <span class="tab-n" data-n="audio"></span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="video">🎬 Video <span class="tab-n" data-n="video"></span></button>
+      </div>
+
+      <section class="tab-body" data-body="ask">
+        <form id="knowForm" class="know-form">
+          <input id="knowQ" type="search" placeholder="Ask or search, e.g. कुण्डलिनी जागरण, Gayatri mantra, dhyan…" autocomplete="off" />
+          <select id="knowBook" aria-label="Search in"><option value="">All books I've read</option></select>
+          <button class="btn" type="submit">Ask</button>
+        </form>
+        <div class="know-actions">
+          <button class="btn ghost-btn" type="button" id="sumBtn" disabled>📝 Summarize this book</button>
+          <span class="hint">Pick a book on the right, or type “summarize” and part of a book's name.</span>
+        </div>
+        <p class="hint">Shows the exact passages from the books, with book name and page. Some scanned books were read by OCR, so a few words may be misread.</p>
+        <div id="knowResults" class="know-results"></div>
+      </section>
+
+      <section class="tab-body" data-body="list" hidden>
+        <div id="knowList" class="know-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Library (owner only) -->
+  <div class="modal" id="libraryModal" hidden role="dialog" aria-modal="true" aria-labelledby="libTitle">
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2 id="libTitle">📚 Krishna Sakha's Library</h2>
+        <button class="icon-btn" id="libClose" aria-label="Close">✕</button>
+      </header>
+
+      <form id="libLogin" class="lib-login">
+        <p>Only the site owner can add knowledge. Enter the owner password (the <code>ADMIN_PASSWORD</code> in your <code>.env</code> file).</p>
+        <div class="row">
+          <input type="password" id="libPass" placeholder="Owner password" autocomplete="current-password" />
+          <button type="submit" class="btn">Unlock</button>
+        </div>
+        <p class="lib-msg" id="libLoginMsg"></p>
+      </form>
+
+      <div id="libBody" hidden>
+        <div class="drop" id="dropZone">
+          <div class="drop-icon">⬆</div>
+          <p><strong>Drag and drop</strong> books, audio, video or whole folders here</p>
+          <div class="row wrap">
+            <label class="btn">📄 Choose files<input type="file" id="pickFiles" multiple hidden /></label>
+            <label class="btn">📁 Choose a folder<input type="file" id="pickFolder" webkitdirectory multiple hidden /></label>
+          </div>
+          <label class="check"><input type="checkbox" id="asNotes" /> These are my own notes (kept separate from scripture)</label>
+          <p class="hint">Any file size (MB or GB). Interrupted uploads resume where they stopped.<br />Books: PDF, EPUB, TXT, MD, DOCX · Media: MP3, WAV, M4A, MP4, MKV, WEBM, SRT, VTT</p>
+        </div>
+        <div id="uploadList" class="upload-list"></div>
+
+        <h3>🔗 Add links</h3>
+        <p class="hint">YouTube videos, PDF links or web pages. One per line.</p>
+        <textarea id="linksInput" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;https://example.org/book.pdf"></textarea>
+        <div class="row"><button class="btn" id="addLinksBtn">Add links</button><span class="lib-msg" id="linksMsg"></span></div>
+
+        <h3>In the library</h3>
+        <div id="libContents" class="lib-contents"></div>
+        <p class="hint note">Files are saved in the project's <code>library</code> folder. Krishna Sakha starts using them in answers once the import step (text extraction and transcription) is set up.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="markdown.js"></script>
+  <script src="avatar.js"></script>
+  <script src="voice.js"></script>
+  <script src="app.js"></script>
+  <script src="library.js"></script>
+  <script src="knowledge.js"></script>
+  <script src="camera.js"></script>
+</body>
+</html>

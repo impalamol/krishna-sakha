@@ -1,0 +1,25 @@
+{
+  "name": "sanatan-agent",
+  "version": "1.0.0",
+  "description": "SANATAN — a browser-based AI scholar of Sanatan Dharma with an animated avatar, voice and lip-sync.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
+    "@huggingface/transformers": "^3.7.5",
+    "@napi-rs/canvas": "^0.1.65",
+    "ffmpeg-static": "^5.2.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.9.0",
+    "msedge-tts": "^2.1.1",
+    "pdfjs-dist": "^4.10.38",
+    "tesseract.js": "^5.1.1"
+  }
+}
