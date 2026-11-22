@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krishna Sakha</title>
+<meta name="description" content="Krishna Sakha, an AI guide to Hindu Dharma who speaks 13 Indian languages.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #070b1a; --fg: #e8ecff; --muted: #9aa4c7; --accent: #8fb8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #142049 0%, var(--bg) 65%); color: var(--fg); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; padding: 16px; text-align: center; }
+  .orb { width: 88px; height: 88px; margin: 0 auto 20px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #cfe0ff, #5b7cff 45%, #24307a 75%); box-shadow: 0 0 40px #5b7cff88; animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 60px #8fb8ffaa; } }
+  @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; font-weight: 600; }
+  p { margin: 6px 0; color: var(--muted); max-width: 30rem; }
+  a { color: var(--accent); }
+  .btn { display: inline-block; margin-top: 14px; padding: 10px 20px; border-radius: 999px; background: #2a3a8a; color: var(--fg); text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+  <div class="orb" aria-hidden="true"></div>
+  <h1>Krishna Sakha</h1>
+  <p id="msg">Opening Krishna Sakha… 🙏</p>
+  <p id="extra"></p>
+</main>
+<script>
+// Krishna Sakha runs on the owner's computer; its current public address is kept in live.json.
+// This page reads it and opens him, or explains that he is resting when the computer is offline.
+(async () => {
+  const msg = document.getElementById("msg"), extra = document.getElementById("extra");
+  const resting = () => {
+    msg.textContent = "Krishna Sakha is resting right now. 🙏";
+    extra.innerHTML = 'His server is offline at the moment. Please try again a little later.<br><a class="btn" href="">Try again</a>';
+  };
+  try {
+    const live = await (await fetch("live.json?t=" + Date.now(), { cache: "no-store" })).json();
+    if (!live.url) return resting();
+    // is the server answering? (no-cors: we only need to know it is reachable)
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+    await fetch(live.url + "/api/config", { mode: "no-cors", cache: "no-store", signal: ctl.signal });
+    location.replace(live.url + location.search + location.hash);
+  } catch { resting(); }
+})();
+</script>
+</body>
+</html>
