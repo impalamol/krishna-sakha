@@ -35,7 +35,9 @@
   let motes = [];
 
   function layout() {
-    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    // the backdrop is soft glow and faint text: a lower pixel density looks the same and costs a fraction of the
+    // GPU time (the same laptop GPU runs the local brain; a hot GPU slows his answers)
+    const DPR = Math.min(window.devicePixelRatio || 1, 1);
     const r = stage.getBoundingClientRect();
     W = r.width; H = r.height;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
@@ -304,12 +306,17 @@
 
   let lastFrame = 0, dtF = 16;
   const ease = (ms) => 1 - Math.exp(-dtF / ms); // time-based easing: same speed on fast and slow devices
+  // Frame budget: 30 fps while he talks or listens (smooth lips), 15 fps when idle or meditating. Drawing at the
+  // screen's full 60+ fps kept the laptop GPU at ~90% and hot, which throttled the local brain to a crawl.
   function frame(t) {
+    requestAnimationFrame(frame);
+    const active = state === "speaking" || state === "listening" || celebrating();
+    const budget = active ? 1000 / 30 : 1000 / 15;
+    if (lastFrame && t - lastFrame < budget - 2) return;
     dtF = Math.min(1000, t - (lastFrame || t)); lastFrame = t;
     drawFace(t);
     drawAura(t);
     drawVerses(t);
-    requestAnimationFrame(frame);
   }
 
   window.SanatanAvatar = {

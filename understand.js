@@ -184,7 +184,7 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
   async function whileFree(fn) {
     const ctl = new AbortController();
     // stop the moment a visitor is being answered (independent of reading pauses / the Resume button)
-    const t = setInterval(() => { if (learner.isHeld() || local?.visitorWaiting()) ctl.abort(); }, 300);
+    const t = setInterval(() => { if (learner.isHeld() || local?.visitorWaiting() || (local && local.quietFor() < 15_000)) ctl.abort(); }, 300);
     try { return await fn(ctl.signal); }
     catch (e) { if (ctl.signal.aborted) throw new EngineChange("paused for a visitor"); throw e; }
     finally { clearInterval(t); }

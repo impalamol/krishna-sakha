@@ -19,7 +19,10 @@ export function createLocalBrain() {
   let ok = false, checkedAt = 0, checking = null, warned = false, busy = 0;
   // Visitors come first: while someone is being answered ("foreground"), background study must stop at once
   // and give the GPU back. claim() marks a visitor's turn; lastForeground tells the study how long it's been quiet.
-  let foreground = 0, lastForeground = 0;
+  let foreground = 0, lastForeground = 0, lastSeen = 0;
+  // seen(): someone has the page open (it polls the status every few seconds). While anyone is there, background
+  // study stays off, so the laptop GPU cools down and is free the moment they ask (a hot GPU slows itself ~4x).
+  const seen = () => { lastSeen = Date.now(); };
   const claim = () => { foreground++; lastForeground = Date.now(); let done = false;
     return () => { if (!done) { done = true; foreground--; lastForeground = Date.now(); } }; };
 
@@ -112,6 +115,7 @@ export function createLocalBrain() {
   check().catch(() => {});
   return {
     enabled, model: MODEL, name: `ollama:${MODEL}`, check, available, chat, json, busy: () => busy > 0,
-    claim, visitorWaiting: () => foreground > 0, quietFor: () => (foreground > 0 ? 0 : Date.now() - lastForeground),
+    claim, seen, visitorWaiting: () => foreground > 0,
+    quietFor: () => (foreground > 0 ? 0 : Date.now() - Math.max(lastForeground, lastSeen)),
   };
 }

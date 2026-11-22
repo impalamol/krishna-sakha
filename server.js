@@ -537,7 +537,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { books, status: st });
     }
     if (url.pathname.startsWith("/api/knowledge/") || url.pathname === "/api/tts") learner.hold();
-    if (req.method === "POST" && url.pathname === "/api/engage") { learner.hold(); tts.warm(); return sendJson(res, 200, { ok: true }); } // visitor started talking
+    if (req.method === "POST" && url.pathname === "/api/engage") { learner.hold(); local.seen(); tts.warm(); return sendJson(res, 200, { ok: true }); } // visitor started talking
     if (req.method === "GET" && url.pathname === "/api/knowledge/summary") {
       const lang = url.searchParams.get("lang") || "en";
       const book = url.searchParams.get("book") || "";
@@ -579,6 +579,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, learner.status());
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
+      local.seen();   // the page is open: keep background study off so the GPU stays cool and free
       // what Krishna Sakha is reading right now, with the real book titles
       const st = learner.status();
       if (st.id) st.title = titler.titleFor(st.id);
