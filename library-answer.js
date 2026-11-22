@@ -150,7 +150,7 @@ const NAME_TO_CODE = {
 };
 
 // Marathi question words and endings that Hindi doesn't use ("ध्यान कसे करावे?", "मला सांगा", "हे काय आहे")
-const MARATHI_Q = new RegExp("(?:^|\\s)(?:आहे|आहेत|मी|काय|कोणते|कोणता|कोणती|कसे|कसा|कशी|कशाला|करावे|करावी|करावा|करू|सांगा|मला|माझे|माझा|माझी|तुम्ही|आपण|नाही|पाहिजे|म्हणजे|कुठे|केव्हा|किंवा|आणि)(?=[\\s,.।?!]|$)|च्या(?=[\\s,.।?!]|$)|साठी(?=[\\s,.।?!]|$)");
+const MARATHI_Q = new RegExp("(?:^|\\s)(?:आहे|आहेत|मी|काय|कोणते|कोणता|कोणती|कसे|कसा|कशी|कशाला|करावे|करावी|करावा|करू|सांगा|मला|माझे|माझा|माझी|तुम्ही|आपण|नाही|पाहिजे|म्हणजे|कुठे|केव्हा|किंवा|आणि|तू|तुला|तुझं|तुझा|तुझी|तुझे|तुमचा|तुमची|तुमचे|एवढं|एवढे|एवढा|इतकं|कसं|कुठून|कोठून|सांग|आहेस|होतास|होतीस|सगळं|सगळे|बरं|आम्हाला|मला)(?=[\\s,.।?!]|$)|च्या(?=[\\s,.।?!]|$)|साठी(?=[\\s,.।?!]|$)|[\\u0900-\\u097F]+(?:लं|ळं|लेस|लास|तोस|तेस|शील|ायचं|ायचे)(?=[\\s,.।?!]|$)");
 export function pickLang(raw, q) {
   const tag = raw.match(/\[REPLY IN: ([^\]]+)\]/i);
   if (tag) {
@@ -181,29 +181,41 @@ const TALK_RE = {
   who: /^((what('?s| is) )?your (good )?name|what should i call you|who are you|who r u|tell me about (yourself|you)|introduce yourself|(aap|aapka|apka|tumhara|tera) (naam|nam|name) (kya|kia) (hai|h)|(aap|tum|ap) kaun (ho|hain|hai)|kaun ho (aap|tum)|आपका नाम क्या है|आप का नाम क्या है|तुम्हारा नाम क्या है|तेरा नाम क्या है|आप कौन (हैं|हो)|तुम कौन हो|अपना परिचय (दीजिए|दीजिये|दो|दें)|(अपने|आपके|आप के|तुम्हारे) बारे में (बताइए|बताइये|बताओ|बताएं|बताएँ|बताएगे|बताएंगे|कुछ बताइए)|(स्वतःबद्दल|तुमच्याबद्दल|तुमच्या बद्दल) (सांगा|सांग)|टेल मी अबाउट (युवर ?सेल्फ|योर ?सेल्फ|यू)|हू आर यू|हु आर यू|व्हाट(्स| इज़| इज) (युवर|योर) नेम|इंट्रोड्यूस (युवर|योर) ?सेल्फ|तुमचे नाव काय( आहे)?|तुझे नाव काय( आहे)?|आपले नाव काय( आहे)?|तुम्ही कोण आहात|तू कोण आहेस)( ji| जी)?$/i,
   praise: /^(nice|very nice|good|very good|great|awesome|wonderful|excellent|beautiful|amazing|wah|waah|bahut (achha|accha|badhiya|sundar)|badhiya|sundar|बहुत (अच्छा|बढ़िया|सुंदर|सुन्दर)|अच्छा लगा|बढ़िया|सुंदर|वाह|छान|खूप छान|सुरेख|उत्तम)( (answer|jawab|जवाब|उत्तर))?( ji| जी)?$/i,
 };
+// "How did you learn all this?" / "तू एवढं सर्व ज्ञान कसं मिळवलं?" / "आपको इतना ज्ञान कैसे मिला?": a question
+// about HIM, answered honestly at once (not by searching the books for the word "knowledge")
+const LEARN_RE = /\b(how|where)\b.{0,20}\b(did|do|have)\b.{0,6}\byou\b.{0,15}\b(learn|learnt|learned|get|got|gain|gained|acquire|know|study|studied)\b|\bhow (are|r) you so (wise|smart|knowledgeable)|where (does|did) your knowledge come from|\bhow you (gain|gained|got|learn|learned|know)\b|हाउ यू (गेन|गेंड|लर्न|नो)|(तुम्हें|तुमको|आपको|तुम्हारे पास|आपके पास|तुमने|आपने)\s+(इतना|इतना सारा|यह सब|ये सब|सब)?\s*(ज्ञान)?\s*(कैसे|कहाँ से|कहां से)\s*(मिला|आया|सीखा|पाया|प्राप्त)|(तू|तुम्ही|तुम्हाला|तुला|आपण|आपल्याला)\s+(एवढं|एवढे|इतकं|इतके|हे|हें)?\s*(सर्व|सगळं|सगळे)?\s*ज्ञान\s+(कसं|कसे|कुठून|कोठून)|ज्ञान\s+(कसं|कसे)\s+(मिळवलं|मिळवले|मिळाले|मिळालं)|(gyan|gyaan|knowledge)\s+(kaise|kahan se)\s+(mila|aaya|seekha|paya)|kaise (seekha|sikha|padha)/i;
 export function smallTalk(q) {
   const s = String(q).toLowerCase().replace(/[!.,।॥?🙏😊❤️👍\s]+/gu, " ").trim();
+  if (s && s.split(" ").length <= 14 && LEARN_RE.test(s)) return "learn";
   if (!s || s.split(" ").length > 6) return null;
   for (const [k, re] of Object.entries(TALK_RE)) if (re.test(s)) return k;
   return null;
 }
 const TALK = {
-  en: { thanks: "🙏 You are most welcome! May the wisdom of the scriptures bring you peace. Ask me anything else whenever you like.",
+  en: { 
+    learn: "🙏 I am an AI, so I did not learn the way a person does. I learned by reading: my library holds the original Sanskrit scriptures (the Vedas, Upanishads, Bhagavad Gita, Ramayana, Mahabharata, Puranas and more) and their classic translations. For every question I search them, and when I am free I study them, so I can tell you where each teaching comes from. The real knowledge belongs to the rishis who saw these truths; I only carry their words to you. What would you like to know?",
+    thanks: "🙏 You are most welcome! May the wisdom of the scriptures bring you peace. Ask me anything else whenever you like.",
     ok: "🙏 Good. If anything is unclear, or you want to go deeper into any topic, just ask.",
     bye: "🙏 Hari Om! May you be well and at peace. Come back whenever you wish.",
     praise: "🙏 Thank you! All credit goes to the sages who wrote these scriptures. What would you like to explore next?",
     who: "🙏 I am **Krishna Sakha**, which means “friend of Krishna”. I am an AI guide to Hindu Dharma: I have read the scriptures and books in my library, and I explain them and answer your questions in 13 Indian languages. I can help with everyday questions too. What would you like to know?" },
-  hi: { thanks: "🙏 आपका बहुत-बहुत स्वागत है! शास्त्रों का ज्ञान आपके जीवन में शांति लाए। जब चाहें, और कुछ भी पूछिए।",
+  hi: { 
+    learn: "🙏 मैं एक AI हूँ, इसलिए मैंने इंसान की तरह नहीं सीखा। मैंने पढ़कर सीखा है: मेरे पुस्तकालय में मूल संस्कृत शास्त्र हैं (वेद, उपनिषद, भगवद्गीता, रामायण, महाभारत, पुराण और भी बहुत कुछ) और उनके प्रसिद्ध अनुवाद। हर प्रश्न पर मैं उन्हें खोजता हूँ, और खाली समय में उनका अध्ययन करता हूँ, ताकि बता सकूँ कि हर शिक्षा कहाँ से आती है। असली ज्ञान तो उन ऋषियों का है जिन्होंने ये सत्य देखे; मैं बस उनके शब्द आप तक पहुँचाता हूँ। आप क्या जानना चाहेंगे?",
+    thanks: "🙏 आपका बहुत-बहुत स्वागत है! शास्त्रों का ज्ञान आपके जीवन में शांति लाए। जब चाहें, और कुछ भी पूछिए।",
     ok: "🙏 अच्छा। अगर कुछ स्पष्ट न हो, या किसी विषय को और गहराई से समझना हो, तो बस पूछिए।",
     bye: "🙏 हरि ओम! आप स्वस्थ और शांत रहें। जब मन करे, फिर आइए।",
     praise: "🙏 धन्यवाद! सारा श्रेय उन ऋषियों को है जिन्होंने ये शास्त्र रचे। अब आप क्या जानना चाहेंगे?",
     who: "🙏 मैं **कृष्ण सखा** हूँ, यानी “कृष्ण का मित्र”। मैं हिंदू धर्म का एक AI मार्गदर्शक हूँ: मैंने अपने पुस्तकालय के शास्त्र और ग्रंथ पढ़े हैं, और उन्हें 13 भारतीय भाषाओं में समझाता हूँ। रोज़मर्रा के सवालों में भी मदद करता हूँ। आप क्या जानना चाहेंगे?" },
-  mr: { thanks: "🙏 आपले मनःपूर्वक स्वागत! शास्त्रांचे ज्ञान आपल्या जीवनात शांती आणो. केव्हाही आणखी काही विचारा.",
+  mr: { 
+    learn: "🙏 मी एक AI आहे, त्यामुळे मी माणसासारखे शिकलो नाही. मी वाचून शिकलो: माझ्या ग्रंथालयात मूळ संस्कृत शास्त्रे आहेत (वेद, उपनिषदे, भगवद्गीता, रामायण, महाभारत, पुराणे आणि बरेच काही) आणि त्यांचे प्रसिद्ध अनुवाद. प्रत्येक प्रश्नासाठी मी त्यांत शोधतो, आणि मोकळ्या वेळेत त्यांचा अभ्यास करतो, म्हणजे प्रत्येक शिकवण कुठून आली ते सांगू शकतो. खरे ज्ञान तर ते सत्य पाहणाऱ्या ऋषींचे आहे; मी फक्त त्यांचे शब्द तुमच्यापर्यंत पोहोचवतो. तुम्हाला काय जाणून घ्यायचे आहे?",
+    thanks: "🙏 आपले मनःपूर्वक स्वागत! शास्त्रांचे ज्ञान आपल्या जीवनात शांती आणो. केव्हाही आणखी काही विचारा.",
     ok: "🙏 छान. काही स्पष्ट झाले नसेल, किंवा एखादा विषय अधिक खोलवर समजून घ्यायचा असेल, तर नक्की विचारा.",
     bye: "🙏 हरि ओम! आपण निरोगी आणि शांत राहा. केव्हाही पुन्हा या.",
     praise: "🙏 धन्यवाद! सर्व श्रेय हे शास्त्र रचणाऱ्या ऋषींना आहे. आता आपल्याला काय जाणून घ्यायला आवडेल?",
     who: "🙏 मी **कृष्ण सखा** आहे, म्हणजे “कृष्णाचा मित्र”. मी हिंदू धर्माचा एक AI मार्गदर्शक आहे: मी माझ्या ग्रंथालयातील शास्त्रे आणि ग्रंथ वाचले आहेत, आणि ते 13 भारतीय भाषांमध्ये समजावून सांगतो. रोजच्या प्रश्नांमध्येही मदत करतो. आपल्याला काय जाणून घ्यायला आवडेल?" },
-  hinglish: { thanks: "🙏 Aapka bahut-bahut swagat hai! Shastron ka gyaan aapke jeevan mein shanti laaye. Jab chahein, aur kuch bhi poochiye.",
+  hinglish: { 
+    learn: "🙏 Main ek AI hoon, isliye maine insaan ki tarah nahi seekha. Maine padhkar seekha hai: mere pustakalaya mein mool Sanskrit shastra hain (Ved, Upanishad, Bhagavad Gita, Ramayan, Mahabharat, Puran aur bahut kuch) aur unke prasiddh anuvaad. Har prashn par main unhe khojta hoon, aur khaali samay mein unka adhyayan karta hoon. Asli gyaan to un rishiyon ka hai jinhone ye satya dekhe; main bas unke shabd aap tak pahunchata hoon. Aap kya jaanna chahenge?",
+    thanks: "🙏 Aapka bahut-bahut swagat hai! Shastron ka gyaan aapke jeevan mein shanti laaye. Jab chahein, aur kuch bhi poochiye.",
     ok: "🙏 Achha. Agar kuch spasht na ho, ya kisi vishay ko aur gehraai se samajhna ho, to bas poochiye.",
     bye: "🙏 Hari Om! Aap swasth aur shaant rahein. Jab man kare, phir aaiye.",
     praise: "🙏 Dhanyavaad! Saara shrey un rishiyon ko hai jinhone ye shastra rache. Ab aap kya jaanna chahenge?",

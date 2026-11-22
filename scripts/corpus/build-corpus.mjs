@@ -97,7 +97,9 @@ function parseGretil(lines, w) {
     const line = raw.replace(/ /g, " ").replace(/\s+$/, "");
     // GRETIL's own notes are not Sanskrit: "% Chapter {165}" comment lines, "{165}" chapter tags, "(1)" footnote marks
     if (/^\s*%/.test(line)) continue;
-    const t = tidyLine(line.trim()).replace(/\{[^}\n]{0,12}\}/g, " ").replace(/\((?:[A-Za-zŚśĀā]{1,8}_)[\d,.]+[a-z]{0,2}\)\s*/g, " ").replace(/\((\d{1,3}|[a-z])\)/g, "").replace(/\s+/g, " ").trim();
+    // NFC: "AVŚ" may be stored as "AVS + accent", which no letter pattern matches; "_11,4[6].11a": the [6] is an
+    // alternative numbering, dropped so the reference reads 11,4.11
+    const t = tidyLine(line.normalize("NFC").trim()).replace(/(_[\d,.]+)\[\d+\]/g, "$1").replace(/\{[^}\n]{0,12}\}/g, " ").replace(/(?<=\S)\s*\((?:[A-Za-zŚśĀā]{1,8}_)[\d,.\[\]]+[a-z]{0,2}\)\s*/g, " ")   /* inside a line only: a marker at the start numbers the verse */.replace(/\((\d{1,3}|[a-z])\)/g, "").replace(/\s+/g, " ").trim();
     if (!t) continue;
     if (w.format === "pages") {                          // Maitrayani Samhita: [Page I,1] blocks
       const m = t.match(/^\[Page ([^\]]+)\]/);
@@ -173,7 +175,9 @@ async function buildGretil(w) {
   let verses = 0;
   for (const [g, vs] of all) {
     const body = vs.map((v) => {
-      const deva = iastToDeva(v.text).replace(/\s*[।॥]+\s*$/, "").replace(/[ \t]+/g, " ").trim();
+      // a word with "_" or "*" is a leftover reference or critical-edition marker ("DG_1.1", "51.013d*1651b_01"):
+      // real Sanskrit never has them
+      const deva = iastToDeva(v.text).replace(/\S*[_*]\S*/g, " ").replace(/=/g, " ").replace(/॥\s*॥/g, "॥").replace(/(\s*[।॥])+\s*$/, "").replace(/[ \t]+/g, " ").trim();
       verses++;
       return v.n ? `${deva} ॥ ${v.n} ॥` : deva;
     }).join("\n");

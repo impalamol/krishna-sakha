@@ -288,6 +288,13 @@
       scrollDown();
     };
 
+    // never wait forever: if no answer has started within 2 minutes (the server restarted, the brain is stuck),
+    // stop and say so, so the visitor can simply ask again
+    let timedOut = false;
+    const watchdog = setInterval(() => {
+      if (!raw && Date.now() - sentAt > 120_000) { timedOut = true; clearInterval(watchdog); controller?.abort(); }
+    }, 5000);
+    const sentAt = Date.now();
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -322,10 +329,12 @@
         }
       }
     } catch (e) {
-      if (e.name !== "AbortError") errorMsg = e.message || "Network error. Please try again.";
+      if (timedOut) errorMsg = "Sorry, I could not answer that in time. Please ask me again. 🙏";
+      else if (e.name !== "AbortError") errorMsg = /fetch|network|load/i.test(e.message || "") ? "I lost the connection for a moment. Please ask me again. 🙏" : e.message || "Network error. Please try again.";
     }
 
     clearTimeout(holdTimer);
+    clearInterval(watchdog);
     render();
     if (controller.signal.aborted) speaker.cancel();
     else if (raw.trim()) speaker.feed(raw, true);

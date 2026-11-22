@@ -21,6 +21,7 @@ import { createUnderstanding } from "./understand.js";
 import { answerFromLibrary, summaryMarkdown, summaryStream, pickLang, smallTalk, GREETING, warmSmallTalk } from "./library-answer.js";
 import { createLocalBrain } from "./local-brain.js";
 import { createScriptFilter, scriptFor } from "./script-filter.js";
+import { englishFromDevanagari } from "./deva-english.js";
 
 try { process.loadEnvFile(); } catch { /* no .env file — use real env vars */ }
 
@@ -367,6 +368,13 @@ async function handleChat(req, res) {
 
   const messages = validateMessages(body.messages);
   if (!messages) return sendJson(res, 400, { error: "No question received." });
+  // English spoken into a Hindi/Marathi microphone arrives as "टेल मी हाउ यू…": turn it back into English words
+  {
+    const last = messages[messages.length - 1];
+    const tags = (last.content.match(/^(?:\[[A-Z ]+:[^\]]*\]\s*)+/) || [""])[0];
+    const en = englishFromDevanagari(last.content.slice(tags.length));
+    if (en) { if (process.env.DEBUG_BRAIN) console.log(`[voice] English heard in Devanagari -> "${en}"`); last.content = tags + en; }
+  }
   // only these three words are accepted from the page (nothing else about the person is ever sent)
   const who = ["man", "woman", "child"].includes(body?.visitor?.kind) ? body.visitor.kind : null;
 
@@ -535,6 +543,9 @@ async function handleChat(req, res) {
         const letters = (held.match(/[\p{L}\p{M}]/gu) || []).length;
         if (letters < (/^Marathi/.test(thinkIn) ? 70 : 30)) return;
         held = held.replace(/^\s*\[[^\]\n]{0,80}\]\s*/, "");   // a copied "[Reply in …]" note at the start
+        // the question repeated back as the first line ("मला राग खूप येतो, काय करू?" …): drop it
+        { const nl = held.indexOf("\n"), first = (nl < 0 ? held : held.slice(0, nl)).replace(/[\s?？!।.]+$/g, "").trim();
+          if (first.length > 5 && plain.replace(/[\s?？!।.]+$/g, "").trim() === first) held = nl < 0 ? "" : held.slice(nl + 1).replace(/^\s+/, ""); }
         restart = wrongStart(held);
         if (restart) return attemptCtl.abort();
         open = true; release(held); held = "";

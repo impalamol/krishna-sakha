@@ -86,8 +86,16 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
   const ownOnce = own ? new RegExp(own.source, own.flags.replace("g", "")) : null;
   // (a citation such as "(Vijnana Bhairava Tantra 84)" is kept: its words are capitalised names, while a
   // transliterated sentence has ordinary lowercase words: "tumchaa mula mitra")
-  const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,300})\)/g, (m, inner) =>
-    (inner.match(/[A-Za-z]{2,}/g) || []).length >= 3 && (inner.match(/(?:^|[\s,])[a-z]{2,}/g) || []).length >= 2 && !ownOnce.test(inner) ? "" : m);
+  // ...and a short Roman gloss after a word ("ध्यान (Dhyan)", "सत्संग (Sat sang)") adds nothing either; a bracket
+  // with a number or a book word is a citation and stays
+  const CITE = /\d|gita|veda|upanishad|purana|sutra|ramayana|mahabharata|tantra|brahmana|samhita|smriti|katha|page|verse|chapter/i;
+  const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,300})\)/g, (m, inner) => {
+    if (ownOnce.test(inner)) return m;
+    const latin = (inner.match(/[A-Za-z]{2,}/g) || []).length;
+    if (latin >= 3 && (inner.match(/(?:^|[\s,])[a-z]{2,}/g) || []).length >= 2) return "";   // a transliterated sentence
+    if (latin >= 1 && latin <= 4 && !CITE.test(inner) && /^[\sA-Za-z'’-]+$/.test(inner)) return "";   // a gloss
+    return m;
+  });
 
   const clean = (s) => {
     let out = fixName(dropRoman(tidy(checkPages(s))));
