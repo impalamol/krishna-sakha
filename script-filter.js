@@ -23,6 +23,20 @@ export function scriptFor(langName = "") {
     kannada: "knda", malayalam: "mlym", urdu: "arab" }[(n.match(/bengali|punjabi|gujarati|odia|tamil|telugu|kannada|malayalam|urdu/) || [])[0]] || null;
 }
 
+// His name, "Krishna Sakha", in every script. A small model sometimes garbles the second word ("कृष्ण शक्य",
+// "कृष्णा सख्य", "Krishna Shasta"): anything that sounds close is put right.
+const NAME_FIXES = [
+  [/कृष्णा?\s+(?:शक्य|शाक्य|सक्य|सख्य|सखया|साखा|सखाः|सका|सखी|शखा|शास्ता|सस्ता|Sakhya|Shakya|Shasta|Sakha)(?=[\s,।.!?:;)"”']|$)/g, "कृष्ण सखा"],
+  [/कृष्णा\s+सखा/g, "कृष्ण सखा"],
+  [/Krishna\s+(?:Shakya|Sakhya|Shasta|Saka|Sakhaa|Sakya)\b/g, "Krishna Sakha"],
+  [/কৃষ্ণ\s+(?:শাক্য|সখ্য|শক্য)(?=[\s,।.!?]|$)/g, "কৃষ্ণ সখা"],
+  // names of the Lord that a small model misspells when it retells from English
+  [/साठ्यनारायण|सत्यानारायण|सत्यनारायन|सत्यनाराय़ण|सत्य नारायण(?=\s+(?:कथा|व्रत|पूजा|भगवान))/g, "सत्यनारायण"],
+];
+const fixName = (s) => NAME_FIXES.reduce((t, [re, to]) => t.replace(re, to), s);
+// the first word of his name at the very end of what is ready to send: wait for the next word
+const NAME_START = /(?:कृष्णा?|Krishna|কৃষ্ণ)\s*$/;
+
 /** Streaming filter: push(text) returns the cleaned text that is ready; end() returns the rest. */
 // "page 12", "pages 12-14", "p. 12", "पृष्ठ 12", "पेज 12", "पान 12", "பக்கம் 12"…
 const PAGE_WORD = "pages?|p\\.|pg\\.?|पृष्ठ|पेज|पन्ना|पान|পৃষ্ঠা|પાનું|પૃષ્ઠ|ਪੰਨਾ|பக்கம்|పేజీ|ಪುಟ|പേജ്|صفحہ";
@@ -67,8 +81,16 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
     .replace(/[‘'"“«]\s*[’'"”»]/g, "").replace(/[,;]\s*\)/g, ")").replace(/\s*\(\s*[,;]?\s*\)/g, "")
     .replace(/(?:^|\n)\s*\/\s*(?=\n|$)/g, "\n").replace(/(,\s*){2,}/g, ", ");
 
+  // a bracket that only repeats the answer in Roman letters ("(Mee Krishna Sakha, tumcha mitra.)") is not wanted
+  // in a Marathi/Hindi/Tamil… answer: three or more Latin words and nothing in the answer's own script
+  const ownOnce = own ? new RegExp(own.source, own.flags.replace("g", "")) : null;
+  // (a citation such as "(Vijnana Bhairava Tantra 84)" is kept: its words are capitalised names, while a
+  // transliterated sentence has ordinary lowercase words: "tumchaa mula mitra")
+  const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,300})\)/g, (m, inner) =>
+    (inner.match(/[A-Za-z]{2,}/g) || []).length >= 3 && (inner.match(/(?:^|[\s,])[a-z]{2,}/g) || []).length >= 2 && !ownOnce.test(inner) ? "" : m);
+
   const clean = (s) => {
-    let out = tidy(checkPages(s));
+    let out = fixName(dropRoman(tidy(checkPages(s))));
     if (key) out = out.split(/(\s+)/).map((part) => /^\s+$/.test(part) ? part : cleanWord(part)).join("");
     out = tidy(out).replace(/[ \t]{2,}/g, " ").replace(/ +([,.!?;:।॥،۔؟])/g, "$1");
     if (/[ \t]$/.test(last) || last === "\n") out = out.replace(/^[ \t]+/, "");
@@ -96,6 +118,10 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
       }
       let cut = Math.max(buf.lastIndexOf(" "), buf.lastIndexOf("\n"));
       if (cut < 0) return "";
+      // his own name may arrive in two pieces ("कृष्ण " … "शक्य"): hold its first word until the second comes,
+      // so a misspelt name can be corrected as a whole
+      const nm = buf.slice(0, cut + 1).match(NAME_START);
+      if (nm) { cut = nm.index - 1; if (cut < 0) return ""; }
       // "… page" with its number still to come: wait, so the citation can be checked as a whole
       if (allowedPages && ENDS_WITH_PAGE.test(buf.slice(0, cut))) {
         const m = buf.slice(0, cut).match(new RegExp(`[,;]?\\s*(?:${PAGE_WORD})\\s*$`, "iu"));

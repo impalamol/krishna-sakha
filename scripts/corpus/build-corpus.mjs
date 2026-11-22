@@ -195,6 +195,11 @@ const catalogue = [];
 for (const w of WORKS) {
   const name = w.title;
   if (only && !name.toLowerCase().includes(only.toLowerCase())) continue;
+  if (w.source === "extra") {   // built by fetch-extra.mjs (or written by hand): only listed here
+    let ok = false; try { ok = (await stat(path.join(LIB, ...w.file.split("/")))).size > 0; } catch {}
+    catalogue.push({ title: name, dir: w.dir, language: w.lang, credit: w.credit, source: "extra", file: w.file, study: w.study, status: ok ? "ready" : "run fetch-extra.mjs" });
+    continue;
+  }
   const r = w.source === "gretil" ? await buildGretil(w) : await buildSacredTexts(w);
   if (r.skipped) { console.log(`·  ${name} [${w.source}]: ${r.skipped}`); catalogue.push({ title: name, dir: w.dir, source: w.source, status: r.skipped, study: w.study }); continue; }
   await mkdir(path.dirname(r.out), { recursive: true });

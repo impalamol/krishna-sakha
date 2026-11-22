@@ -64,6 +64,13 @@ export const WORKS = [
   { source: "sacred-texts", slug: "the-crest-jewel-of-wisdom", dir: "darshana/vedanta/shankara", title: "Vivekachudamani (The Crest-Jewel of Wisdom)", translator: "Charles Johnston", lang: "en", study: 2 },
   { source: "sacred-texts", slug: "select-works-of-sri-sankaracharya", dir: "darshana/vedanta/shankara", title: "Select Works of Sri Sankaracharya", translator: "S. Venkataramanan", lang: "en", study: 2 },
 
+  // ---------- added on request (built by fetch-extra.mjs; study guides written for this library) ----------
+  { source: "extra", dir: "tantra/vijnana-bhairava", title: "Vijnana Bhairava Tantra (Sanskrit)", file: "tantra/vijnana-bhairava/Vijnana Bhairava Tantra (Sanskrit, GRETIL).txt", lang: "Sanskrit", credit: "GRETIL (Marino Faliero)", study: 2 },
+  { source: "extra", dir: "tantra/vijnana-bhairava", title: "Vijnana Bhairava Tantra - Study Guide", file: "tantra/vijnana-bhairava/Vijnana Bhairava Tantra - Study Guide (English overview).txt", lang: "English", credit: "library notes", study: 1 },
+  { source: "extra", dir: "vrata-katha/satyanarayan", title: "Satyanarayan Vrat Katha (Skanda Purana, Reva Khanda)", file: "vrata-katha/satyanarayan/Satyanarayan Vrat Katha - Skanda Purana, Reva Khanda (Sanskrit with Hindi, Wikisource).txt", lang: "Sanskrit + Hindi", credit: "Sanskrit Wikisource", study: 2 },
+  { source: "extra", dir: "vrata-katha/satyanarayan", title: "Satyanarayan Vrat (Bhavishya Purana 3.2.24-29)", file: "vrata-katha/satyanarayan/Satyanarayan Vrat - Bhavishya Purana, Pratisarga Parva 3.2.24-29 (Sanskrit, Wikisource).txt", lang: "Sanskrit", credit: "Sanskrit Wikisource", study: 3 },
+  { source: "extra", dir: "vrata-katha/satyanarayan", title: "Satyanarayan Vrat Katha - Study Guide", file: "vrata-katha/satyanarayan/Satyanarayan Vrat Katha - Study Guide (English overview).txt", lang: "English", credit: "library notes", study: 1 },
+
   // ======================= SANSKRIT ORIGINALS (GRETIL, in Devanagari) =======================
   // files: inside corpus-sources/gretil/1_sanskr/ ; label: how a passage is cited ("Rigveda 1.1")
   // depth: how many leading numbers name a chapter (the rest is the verse); default = all but the last

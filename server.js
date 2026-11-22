@@ -216,8 +216,17 @@ async function libraryContext(messages, { compact = false, voice = false } = {})
   // a verse asked by its number ("Gita 2.47", "कठोपनिषद् 1.2") comes first, exactly
   let verseNote = "";
   try {
-    const v = await knowledge.verse(q);
-    if (v && !v.missing) { results.unshift(v); if (results.length > opts.limit) results.length = opts.limit; }
+    const ch = await knowledge.chapter(q);   // "सत्यनारायण कथा का दूसरा अध्याय": that chapter, not a word match
+    const v = ch ? null : await knowledge.verse(q);
+    if (ch) results = [...ch, ...results.filter((r) => !ch.some((c) => c.id === r.id))].slice(0, Math.max(2, opts.limit));
+    else if (v && !v.missing) { results.unshift(v); if (results.length > opts.limit) results.length = opts.limit; }
+    // the question names a text but the search found nothing from it: give him that text's overview
+    if (!ch && !(v && !v.missing)) {
+      const nm = await knowledge.named(q);
+      if (nm && !results.some((r) => r.id === nm.id || r.book.split(" ")[0] === nm.book.split(" ")[0])) {
+        results.unshift(nm); if (results.length > opts.limit) results.length = opts.limit;
+      }
+    }
     else if (v?.missing) verseNote = `The user asked for ${v.ref}, but that verse number is not in the library's text of "${v.book}". Say so kindly; never invent a verse for that number.\n\n`;
   } catch (e) { console.error("[verse]", e.message); }
   const kw = "";

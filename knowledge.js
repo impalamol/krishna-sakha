@@ -488,6 +488,10 @@ export function createKnowledge(learner, titler = null) {
   // The Sanskrit texts carry every verse's number ("॥ 2.47 ॥"), so a verse asked by its number is found exactly,
   // instead of searching for the word "47". Each alias names the start of a Sanskrit library title.
   const VERSE_BOOKS = [
+    // the most specific names first ("Satyanarayan katha" must not be taken for the Katha Upanishad)
+    [/vij[nñ][aā]na ?bhairava|vigyan ?bhairav|विज्ञान ?भैरव|विज्ञानभैरव/i, "Vijnana Bhairava"],
+    [/satya ?n[aā]r[aā]ya[nṇ]|सत्य ?नारायण|सत्यनारायण/i, "Satyanarayan Vrat Katha"],
+    [/devi ?g[iī]t[aā]|देवी ?गीता/i, "Devi Gita"],
     [/\b(bhagavad ?g[iī]t[aā]|g[iī]t[aā])\b|गीता/i, "Bhagavad Gita"],
     [/\brig ?veda|\brgveda|\bṛgveda|ऋग्वेद/i, "Rigveda"], [/atharva ?veda|अथर्ववेद/i, "Atharvaveda"], [/s[aā]ma ?veda|सामवेद/i, "Samaveda"],
     [/\bkatha\b|kathopanishad|कठ/i, "Katha Upanishad"], [/\b[iī][sś]h?a\b|isha ?upanishad|ईश/i, "Isha Upanishad"],
@@ -499,8 +503,34 @@ export function createKnowledge(learner, titler = null) {
     [/bh[aā]gavata|भागवत/i, "Bhagavata Purana"], [/r[aā]m[aā]ya[nṇ]a|रामायण/i, "Valmiki Ramayana"],
     [/mah[aā]bh[aā]rata|महाभारत/i, "Mahabharata"], [/vishnu pur[aā]na|विष्णु ?पुराण/i, "Vishnu Purana"],
     [/vivekach[uū]d[aā]ma[nṇ]i|विवेकचूडामणि/i, "Vivekachudamani"], [/s[aā][nṃ]khya ?k[aā]rik[aā]|सांख्यकारिका/i, "Samkhya Karika"],
-    [/devi ?g[iī]t[aā]|देवी ?गीता/i, "Devi Gita"],
   ];
+  // "chapter 2", "2nd chapter", "second chapter", "दूसरा अध्याय", "अध्याय 2", "दुसरा अध्याय" -> 2
+  const ORDINALS = [[/first|1st|pahla|pehla|पहला|पहले|प्रथम|पहिला/i, 1], [/second|2nd|dusra|doosra|दूसरा|दूसरे|दुसरा|द्वितीय/i, 2],
+    [/third|3rd|teesra|tisra|तीसरा|तीसरे|तिसरा|तृतीय/i, 3], [/fourth|4th|chautha|चौथा|चौथे|चतुर्थ/i, 4], [/fifth|5th|panchva|पाँचवा|पांचवा|पाँचवाँ|पांचवां|पंचम|पाचवा/i, 5],
+    [/sixth|6th|छठा|छठे|षष्ठ|सहावा/i, 6], [/seventh|7th|सातवाँ|सातवां|सप्तम|सातवा/i, 7], [/eighth|8th|आठवाँ|आठवां|अष्टम|आठवा/i, 8]];
+  function chapterAsked(s) {
+    if (!/chapter|adhy[aā]y|अध्याय|सर्ग|स्कन्ध|canto/i.test(s)) return null;
+    const d = s.match(/(?:chapter|adhy[aā]ya?|अध्याय|canto|सर्ग)\s*(?:no\.?\s*)?(\d{1,3})\b|\b(\d{1,3})\s*(?:st|nd|rd|th)?\s*(?:chapter|adhy[aā]ya?|अध्याय)/i);
+    if (d) return Number(d[1] || d[2]);
+    for (const [re, n] of ORDINALS) if (re.test(s)) return n;
+    return null;
+  }
+  /** "Satyanarayan katha chapter 2" / "सत्यनारायण कथा का दूसरा अध्याय": that chapter's passages (study guide first, then the text) */
+  async function chapter(q) {
+    const s = toLatinDigits(String(q || ""));
+    const hit = VERSE_BOOKS.find(([re]) => re.test(s));
+    const n = hit && chapterAsked(s);
+    if (!n) return null;
+    const want = new RegExp(`(?:Chapter ${n}\\b|^${hit[1]}[^\\d]* ${n}(?:\\b|$)|^Bhagavad Gita ${n}$)`, "i");
+    const out = [];
+    for (const b of books().filter((x) => x.searchable && (x.title.includes(hit[1]) || x.title.startsWith(hit[1].split(" ")[0])))) {
+      const chunks = (await chunksOf(b.id)).filter((c) => c.ref && want.test(c.ref));
+      if (chunks.length) out.push({ book: titleOf(b.id), id: b.id, ref: chunks[0].ref, page: null, text: chunks.map((c) => c.text).join("\n").slice(0, 1800), by: "chapter" });
+    }
+    // the plain-language study guide first: the local model retells best from it
+    out.sort((a, b) => (/Study Guide/.test(b.book) ? 1 : 0) - (/Study Guide/.test(a.book) ? 1 : 0));
+    return out.length ? out : null;
+  }
   const toLatinDigits = (s) => s.replace(/[०-९]/g, (d) => String(d.charCodeAt(0) - 0x966));
   async function verse(q) {
     const s = toLatinDigits(String(q || ""));
@@ -508,6 +538,10 @@ export function createKnowledge(learner, titler = null) {
     if (!nums.length) {   // "chapter 2 verse 47", "अध्याय 2 श्लोक 47"
       const m = s.match(/(?:chapter|adhy[aā]ya|canto|mandala|book|अध्याय|मंडल|मण्डल|स्कन्ध)\s*(\d{1,3})\D{1,25}?(?:verse|shloka|sloka|sutra|hymn|sukta|श्लोक|सूत्र|सूक्त|मंत्र|मन्त्र)\s*(\d{1,4})/i);
       if (m) nums = [m[1], m[2]];
+    }
+    if (!nums.length) {   // texts numbered by verse only: "Vijnana Bhairava verse 24", "विज्ञान भैरव श्लोक 24", "dharana 24"
+      const m = s.match(/(?:verse|shloka|sloka|sutra|dh[aā]ra[nṇ][aā]|श्लोक|धारणा|सूत्र)\s*(?:no\.?\s*)?(\d{1,3})\b/i);
+      if (m) nums = [m[1]];
     }
     if (!nums.length) return null;
     const hit = VERSE_BOOKS.find(([re]) => re.test(s));
@@ -528,7 +562,21 @@ export function createKnowledge(learner, titler = null) {
     return { book: titleOf(book.id), id: book.id, ref: `${hit[1]} ${want}`, missing: true };
   }
 
-  return { books, search, summarize, findBook, titleOf, terms, fold, pageText, bookForPage, verse };
+  /** A question that names a text ("सत्यनारायण कथेचा संदेश", "what is the Vijnana Bhairava?"): its overview —
+   *  the study guide's first sections if there is one, else the text's opening — so he never answers it blind. */
+  async function named(q) {
+    const s = String(q || "");
+    const hit = VERSE_BOOKS.find(([re]) => re.test(s));
+    if (!hit) return null;
+    const list = books().filter((b) => b.searchable && b.title.includes(hit[1].split(" ").slice(0, 2).join(" ")));
+    const guide = list.find((b) => /Study Guide/.test(b.title)) || list.find((b) => !/\(Sanskrit/.test(b.title)) || list[0];
+    if (!guide) return null;
+    const chunks = (await chunksOf(guide.id)).slice(0, 2);
+    if (!chunks.length) return null;
+    return { book: titleOf(guide.id), id: guide.id, ref: chunks[0].ref || null, page: chunks[0].page ?? null, text: chunks.map((c) => c.text).join("\n").slice(0, 1600), by: "named" };
+  }
+
+  return { books, search, summarize, findBook, titleOf, terms, fold, pageText, bookForPage, verse, chapter, named };
 }
 
 // "page 65", "pg no 65", "p. 65", "पेज 65", "पृष्ठ 65", "पेज नंबर 65", "65वें पेज", "पान 65" (Marathi) …
