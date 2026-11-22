@@ -87,3 +87,11 @@ Speech uses voices installed on each visitor's device, so quality varies. Window
 ## Image note
 
 The avatar is drawn entirely in code (SVG + canvas), inspired by your reference image. The reference image itself, in `design/`, is **not** served and is git-ignored, because it looks like a stock illustration you may not have a licence to publish.
+
+## Testing his behaviour
+
+With the server running: `node scripts/eval.mjs` asks 14 hard questions through the real chat (insults, flattery,
+"are you enlightened?", grief, a crisis message, another religion, a made-up page, a prompt-injection attempt, and
+Tamil, Bengali, Urdu, Marathi questions) and checks every answer: calm, humble, compassionate, fair to all paths,
+no invented pages, instructions kept private, help numbers given, the right language and script. Run it after every
+change to his prompt or brain; `node scripts/eval.mjs crisis` runs only the tests whose name contains "crisis".

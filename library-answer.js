@@ -149,13 +149,15 @@ const NAME_TO_CODE = {
   telugu: "te", kannada: "kn", malayalam: "ml", gujarati: "gu", punjabi: "pa", urdu: "ur",
 };
 
+// Marathi question words and endings that Hindi doesn't use ("ध्यान कसे करावे?", "मला सांगा", "हे काय आहे")
+const MARATHI_Q = new RegExp("(?:^|\\s)(?:आहे|आहेत|मी|काय|कोणते|कोणता|कोणती|कसे|कसा|कशी|कशाला|करावे|करावी|करावा|करू|सांगा|मला|माझे|माझा|माझी|तुम्ही|आपण|नाही|पाहिजे|म्हणजे|कुठे|केव्हा|किंवा|आणि)(?=[\\s,.।?!]|$)|च्या(?=[\\s,.।?!]|$)|साठी(?=[\\s,.।?!]|$)");
 export function pickLang(raw, q) {
   const tag = raw.match(/\[REPLY IN: ([^\]]+)\]/i);
   if (tag) {
     const name = tag[1].toLowerCase();
     for (const [k, v] of Object.entries(NAME_TO_CODE)) if (name.startsWith(k)) return v;
   }
-  if (/[ऀ-ॿ]/.test(q)) return /\b(आहे|आहेत|काय|कोणते|मी)\b|आहे|काय/.test(q) ? "mr" : "hi";
+  if (/[ऀ-ॿ]/.test(q)) return MARATHI_Q.test(q) ? "mr" : "hi";
   return "en";
 }
 
