@@ -29,6 +29,7 @@ const LOCAL_MAX_PARTS = 400;
 const LOCAL_NOTES_BUDGET = 12_000;   // characters of notes the local model reflects on at once (fits its 8k context)
 // rest between parts so the GPU cools down: a hot laptop GPU slows itself 4x, which makes conversations slow
 const LOCAL_REST_MS = (Number(process.env.LOCAL_STUDY_REST) || 20) * 1000;
+const LOCAL_QUIET_MS = (Number(process.env.LOCAL_STUDY_QUIET) || 5 * 60) * 1000;   // no visitor for this long before studying
 
 class EngineChange extends Error {}   // the chosen brain went away (or a visitor arrived): try again later
 
@@ -167,6 +168,9 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
     for (;;) {
       const e = engineNow();
       const ready = engine ? (engine === "claude" ? aiEnabled() : !!local?.available()) : !!e;
+      // the local brain studies only after 5 quiet minutes, so a visitor never waits behind a study note
+      const localBusy = (engine || e) === "local" && local && local.quietFor() < LOCAL_QUIET_MS;
+      if (localBusy && ready && !learner.isHeld()) { now.state = "paused"; await sleep(5_000); continue; }
       if (engine && !ready && e) throw new EngineChange(`${engine} unavailable, switching to ${e}`);
       if (!learner.isHeld() && ready) break;
       now.state = !ready ? "waiting-ai" : "paused";
@@ -179,7 +183,8 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
   // a local study call is stopped the moment a visitor starts talking, so the local brain can answer them at once
   async function whileFree(fn) {
     const ctl = new AbortController();
-    const t = setInterval(() => { if (learner.isHeld()) ctl.abort(); }, 500);
+    // stop the moment a visitor is being answered (independent of reading pauses / the Resume button)
+    const t = setInterval(() => { if (learner.isHeld() || local?.visitorWaiting()) ctl.abort(); }, 300);
     try { return await fn(ctl.signal); }
     catch (e) { if (ctl.signal.aborted) throw new EngineChange("paused for a visitor"); throw e; }
     finally { clearInterval(t); }
@@ -266,10 +271,12 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
     for (let i = notes.length; i < chunks.length; i++) {
       await waitTurn(engine);
       now.part = i;
+      const partStart = Date.now();
       notes[i] = (await closeReading(book, chunks[i], i, chunks.length, engine)) || { summary: "(this part could not be read)", teachings: [], concepts: [], practices: [], stories: [], verses: [] };
       // the understanding a text already has (e.g. from the local brain) stays usable while it is studied again
       await saveJson(file, { ...(saved.understanding ? { understanding: saved.understanding, engineOfUnderstanding: saved.engine || "claude" } : {}), v: VERSION, id: book.id, title: book.title, version: v, engine, notes, studying: true });
-      if (engine === "local") { now.state = "resting"; await sleep(LOCAL_REST_MS); }
+      // rest as long as the part took (at least LOCAL_REST_MS): the GPU cools, so visitors get fast answers
+      if (engine === "local") { now.state = "resting"; await sleep(Math.max(LOCAL_REST_MS, Date.now() - partStart)); }
     }
     await waitTurn(engine);
     now.part = chunks.length;

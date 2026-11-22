@@ -17,6 +17,11 @@ let gpuLayers = process.env.OLLAMA_GPU_LAYERS === "auto" ? null : Number(process
 export function createLocalBrain() {
   const enabled = process.env.LOCAL_BRAIN !== "false";
   let ok = false, checkedAt = 0, checking = null, warned = false, busy = 0;
+  // Visitors come first: while someone is being answered ("foreground"), background study must stop at once
+  // and give the GPU back. claim() marks a visitor's turn; lastForeground tells the study how long it's been quiet.
+  let foreground = 0, lastForeground = 0;
+  const claim = () => { foreground++; lastForeground = Date.now(); let done = false;
+    return () => { if (!done) { done = true; foreground--; lastForeground = Date.now(); } }; };
 
   // Is Ollama running and is the model downloaded? (checked at most every 30 s)
   async function check() {
@@ -104,22 +109,9 @@ export function createLocalBrain() {
     try { return JSON.parse(text); } catch { return null; }
   }
 
-  /**
-   * Search words for a question, in Hindi (Devanagari) and English: most books are in Hindi, so an English,
-   * Tamil or Marathi question shares no words with them. Gemma knows the right spellings of Sanskrit terms
-   * and names (Gheranda -> घेरण्ड, neti -> नेति), which the offline translator often gets wrong.
-   */
-  async function keywords(question, { signal } = {}) {
-    const text = await chat({
-      messages: [{ role: "user", content:
-        "List the key search words of this question for finding passages in Hindi and English books on yoga, dharma and scriptures. " +
-        "Give the main terms, names of texts, people and practices, each in Hindi (Devanagari) AND in English, separated by commas. " +
-        "No sentences, no question words, at most 12 words.\n\nQuestion: " + question }],
-      signal, temperature: 0, maxTokens: 60,
-    });
-    return text.replace(/[\n*•\-]+/g, ",").replace(/\s*,\s*/g, ", ").replace(/^[,\s]+|[,\s]+$/g, "").slice(0, 300);
-  }
-
   check().catch(() => {});
-  return { enabled, model: MODEL, name: `ollama:${MODEL}`, check, available, chat, json, keywords, busy: () => busy > 0 };
+  return {
+    enabled, model: MODEL, name: `ollama:${MODEL}`, check, available, chat, json, busy: () => busy > 0,
+    claim, visitorWaiting: () => foreground > 0, quietFor: () => (foreground > 0 ? 0 : Date.now() - lastForeground),
+  };
 }

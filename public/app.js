@@ -209,14 +209,15 @@
     };
   }
 
-  // short "one moment" line, spoken when an answer is slow to start
+  // a short, natural "let me think" line, spoken only when an answer is slow to start (after 4 s)
   const HOLD = {
-    auto: "एक क्षण, मैं ग्रंथों में देखता हूँ।", hi: "एक क्षण, मैं ग्रंथों में देखता हूँ।", sa: "एक क्षण, मैं ग्रंथों में देखता हूँ।",
-    en: "One moment, let me look in the scriptures.", hinglish: "Ek kshan, main granthon mein dekhta hoon.",
-    mr: "एक क्षण, मी ग्रंथांमध्ये पाहतो.", bn: "এক মুহূর্ত, আমি শাস্ত্রে দেখছি।", ta: "ஒரு கணம், நான் நூல்களில் பார்க்கிறேன்.",
-    te: "ఒక్క క్షణం, నేను గ్రంథాలలో చూస్తాను.", kn: "ಒಂದು ಕ್ಷಣ, ನಾನು ಗ್ರಂಥಗಳಲ್ಲಿ ನೋಡುತ್ತೇನೆ.", ml: "ഒരു നിമിഷം, ഞാൻ ഗ്രന്ഥങ്ങളിൽ നോക്കട്ടെ.",
-    gu: "એક ક્ષણ, હું ગ્રંથોમાં જોઉં છું.", pa: "ਇੱਕ ਪਲ, ਮੈਂ ਗ੍ਰੰਥਾਂ ਵਿੱਚ ਦੇਖਦਾ ਹਾਂ।", ur: "ایک لمحہ، میں صحیفوں میں دیکھتا ہوں۔",
+    auto: "हम्म, एक पल सोचने दीजिए।", hi: "हम्म, एक पल सोचने दीजिए।", sa: "हम्म, एक पल सोचने दीजिए।",
+    en: "Hmm, let me think for a moment.", hinglish: "Hmm, ek pal sochne dijiye.",
+    mr: "हम्म, एक क्षण विचार करू द्या.", bn: "হুম, একটু ভেবে দেখি।", ta: "ம்ம், ஒரு கணம் யோசிக்கிறேன்.",
+    te: "హ్మ్, ఒక్క క్షణం ఆలోచిస్తాను.", kn: "ಹ್ಮ್, ಒಂದು ಕ್ಷಣ ಯೋಚಿಸುತ್ತೇನೆ.", ml: "ഹ്മ്, ഒരു നിമിഷം ആലോചിക്കട്ടെ.",
+    gu: "હમ્મ, એક ક્ષણ વિચારવા દો.", pa: "ਹੰਮ, ਇੱਕ ਪਲ ਸੋਚਣ ਦਿਓ।", ur: "ہمم، ذرا ایک لمحہ سوچنے دیجیے۔",
   };
+
 
   // ---------- send ----------
   // voice: true = spoken in a live voice conversation (the server answers briefly, like a person talking)
@@ -257,7 +258,7 @@
         Voice.speak(HOLD[replyLang.code] || HOLD.en);
         setState("thinking");
       }
-    }, 1500);
+    }, 4000);   // only if nothing has started by then: most answers begin before it
     const render = () => {
       pendingRender = false;
       botEl.innerHTML = MD.render(raw) || '<span class="typing"><i></i><i></i><i></i></span>';

@@ -88,7 +88,7 @@ const tts = createTTS(__dirname);
 tts.warm(); // load the Hindi and English voices now, not on the first question
 // the "one moment" lines (public/app.js HOLD) are cached ahead so they play instantly
 setTimeout(() => {
-  for (const [t, l] of [["एक क्षण, मैं ग्रंथों में देखता हूँ।", "hi"], ["One moment, let me look in the scriptures.", "en"]])
+  for (const [t, l] of [["हम्म, एक पल सोचने दीजिए।", "hi"], ["Hmm, let me think for a moment.", "en"], ["हम्म, एक क्षण विचार करू द्या.", "mr"]])
     for (const r of [0.95, 1]) tts.synth(t, l, r).catch(() => {});
 }, 3000);
 // offline translation (NLLB) so summaries come in the visitor's language; reading pauses while it works
@@ -268,7 +268,7 @@ async function handleChat(req, res) {
 
   // Answer with the LOCAL BRAIN (free model in Ollama), grounded in the same library context. Returns false if it
   // could not answer (Ollama off, error), so the caller can fall back to the books-only answer.
-  const localAnswer = async () => {
+  const localAnswerInner = async () => {
     const raw = messages[messages.length - 1].content;
     const plain = raw.replace(/\[[A-Z ]+:[^\]]*\]\s*/g, "").trim();
     // greetings, thanks, "what is your name": the prepared reply is instant (and never a garbled name)
@@ -384,6 +384,8 @@ async function handleChat(req, res) {
       return false;
     }
   };
+  // a visitor's question claims the GPU at once: background study stops immediately and waits until it's quiet
+  const localAnswer = async () => { const release = local.claim(); try { return await localAnswerInner(); } finally { release(); } };
 
   // greetings, thanks, ok, bye, praise, "what is your name": a prepared reply at once, whatever brain is on
   {

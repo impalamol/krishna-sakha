@@ -1,4 +1,6 @@
-# SANATAN — AI Guide to Sanatan Dharma
+# Krishna Sakha — AI Guide to Hindu Dharma
+
+**Live:** https://impalamol.github.io/krishna-sakha/ (online while the owner's computer is running it; otherwise it shows a "resting" page)
 
 A browser-based AI agent with an animated avatar: a glowing blue-violet face in a neural halo. It talks, blinks, looks around, and moves its lips in time with its voice.
 
@@ -22,7 +24,17 @@ Open http://localhost:3000.
 
 ## Put it online
 
-The app is a single Node server with no build step and no database. Any Node host can run it:
+### From this computer (free, everything included)
+
+Double-click **`start-live.bat`**. It starts the server and a free Cloudflare tunnel, then updates the GitHub Pages link
+(`live.json` on the `gh-pages` branch) with the tunnel's new address, so https://impalamol.github.io/krishna-sakha/
+always opens him. Keep both windows open while he should be online. Needs `cloudflared`
+(`winget install Cloudflare.cloudflared`) and Ollama for the free local brain. By hand: `npm start`, then `node scripts/go-live.mjs`.
+
+### On a cloud host
+
+The app is a single Node server with no build step and no database. Any Node host can run it
+(the free local brain, Whisper and OCR need a strong machine; on a small host use Claude credits):
 
 | Host | Steps |
 |---|---|
