@@ -143,7 +143,7 @@ const tts = createTTS(__dirname);
 tts.warm(); // load the Hindi and English voices now, not on the first question
 // the "one moment" lines (public/app.js HOLD) are cached ahead so they play instantly
 setTimeout(() => {
-  for (const [t, l] of [["हम्म, एक पल सोचने दीजिए।", "hi"], ["Hmm, let me think for a moment.", "en"], ["हम्म, एक क्षण विचार करू द्या.", "mr"]])
+  for (const [t, l] of [["हं, एक पल सोचने दीजिए।", "hi"], ["Hmm, let me think for a moment.", "en"], ["हं, एक क्षण विचार करू द्या.", "mr"]])
     for (const r of [0.95, 1]) tts.synth(t, l, r).catch(() => {});
 }, 3000);
 // offline translation (NLLB) so summaries come in the visitor's language; reading pauses while it works

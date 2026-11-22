@@ -30,6 +30,8 @@ const NAME_FIXES = [
   [/कृष्णा\s+सखा/g, "कृष्ण सखा"],
   [/Krishna\s+(?:Shakya|Sakhya|Shasta|Saka|Sakhaa|Sakya)\b/g, "Krishna Sakha"],
   [/কৃষ্ণ\s+(?:শাক্য|সখ্য|শক্য)(?=[\s,।.!?]|$)/g, "কৃষ্ণ সখা"],
+  // the thinking sound: the voice reads "हम्म" as a long, odd "humm"; a short "हं" sounds natural
+  [/(^|[\s"“'(])हम्म+(?=[\s,।.!?…]|$)/g, "$1हं"],
   // names of the Lord that a small model misspells when it retells from English
   [/साठ्यनारायण|सत्यानारायण|सत्यनारायन|सत्यनाराय़ण|सत्य नारायण(?=\s+(?:कथा|व्रत|पूजा|भगवान))/g, "सत्यनारायण"],
 ];
