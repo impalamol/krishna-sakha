@@ -106,3 +106,12 @@ async function satyanarayan() {
 
 await vijnanaBhairava();
 await satyanarayan();
+
+// the English study guides written for this library are kept in scripts/corpus/guides (they are part of the code)
+for (const [name, dir] of [["Vijnana Bhairava Tantra - Study Guide (English overview).txt", "tantra/vijnana-bhairava"],
+  ["Satyanarayan Vrat Katha - Study Guide (English overview).txt", "vrata-katha/satyanarayan"]]) {
+  const text = await readFile(path.join(ROOT, "scripts", "corpus", "guides", name), "utf8");
+  await mkdir(path.join(LIB, ...dir.split("/")), { recursive: true });
+  await writeFile(path.join(LIB, ...dir.split("/"), name), text);
+  console.log(`✓ ${dir}/${name}`);
+}
