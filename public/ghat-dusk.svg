@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <!-- Krishna Sakha: a river ghat at dusk (original drawing). Temples on both banks, a golden horizon,
+       diyas on the steps and on the water, marigold petals drifting in the sky. Shown faintly behind his face. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a0d38"/>
+      <stop offset="0.32" stop-color="#2b1b62"/>
+      <stop offset="0.5" stop-color="#6b2a6e"/>
+      <stop offset="0.62" stop-color="#c2554a"/>
+      <stop offset="0.7" stop-color="#f0a04b"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe2a0" stop-opacity="0.95"/>
+      <stop offset="0.25" stop-color="#ffb45a" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#ff7a3c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9804a"/>
+      <stop offset="0.12" stop-color="#7a3358"/>
+      <stop offset="0.55" stop-color="#2a1844"/>
+      <stop offset="1" stop-color="#0d0a24"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a2d2a"/>
+      <stop offset="1" stop-color="#22101a"/>
+    </linearGradient>
+    <linearGradient id="templeL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1b0f2c"/>
+      <stop offset="0.7" stop-color="#3a1d38"/>
+      <stop offset="1" stop-color="#6a3434"/>
+    </linearGradient>
+    <linearGradient id="templeR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#1b0f2c"/>
+      <stop offset="0.7" stop-color="#3a1d38"/>
+      <stop offset="1" stop-color="#6a3434"/>
+    </linearGradient>
+    <radialGradient id="flame" cx="0.5" cy="0.6" r="0.5">
+      <stop offset="0" stop-color="#fff6c8"/>
+      <stop offset="0.45" stop-color="#ffc24a"/>
+      <stop offset="1" stop-color="#ff6a1a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffcf7a" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="blurV" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2 6"/></filter>
+
+    <!-- a Nagara temple tower: curved shikhara, amalaka disc, kalasha finial -->
+    <g id="shikhara">
+      <!-- smaller attached spires (urushringas) on both sides -->
+      <path d="M-78 0 C-77 -45 -66 -88 -50 -110 L-38 -110 C-30 -80 -28 -40 -26 0 Z"/>
+      <path d="M78 0 C77 -45 66 -88 50 -110 L38 -110 C30 -80 28 -40 26 0 Z"/>
+      <ellipse cx="-44" cy="-114" rx="11" ry="4"/><ellipse cx="44" cy="-114" rx="11" ry="4"/>
+      <!-- the main curved tower -->
+      <path d="M-55 0 C-53 -90 -38 -170 -12 -215 L12 -215 C38 -170 53 -90 55 0 Z"/>
+      <path d="M-84 0 L84 0 L90 22 L-90 22 Z"/>
+      <ellipse cx="0" cy="-222" rx="22" ry="8"/>
+      <path d="M-6 -230 C-8 -245 8 -245 6 -230 Z"/>
+      <path d="M-2 -244 L2 -244 L1 -262 L-1 -262 Z"/>
+      <!-- vertical ribs and stacked tiers, catching the last light -->
+      <g fill="none" stroke="#ffb46a" stroke-opacity="0.22" stroke-width="1.6">
+        <path d="M-28 0 C-27 -90 -18 -170 -5 -214"/><path d="M0 0 L0 -214"/><path d="M28 0 C27 -90 18 -170 5 -214"/>
+        <path d="M-54 -30 L54 -30 M-52 -62 L52 -62 M-49 -94 L49 -94 M-44 -126 L44 -126 M-36 -158 L36 -158 M-26 -188 L26 -188"/>
+      </g>
+      <path d="M55 0 C53 -90 38 -170 12 -215" fill="none" stroke="#ffc27a" stroke-opacity="0.35" stroke-width="2"/>
+    </g>
+    <!-- a domed pavilion (chhatri) -->
+    <g id="chhatri">
+      <path d="M-50 0 L-50 -60 L50 -60 L50 0 Z"/>
+      <path d="M-58 -60 L58 -60 L52 -72 L-52 -72 Z"/>
+      <path d="M-44 -72 C-44 -120 44 -120 44 -72 Z"/>
+      <path d="M-3 -112 L3 -112 L1 -132 L-1 -132 Z"/>
+    </g>
+    <!-- a clay diya with its flame and glow -->
+    <g id="diya">
+      <circle cx="0" cy="-14" r="34" fill="url(#glow)"/>
+      <path d="M-16 0 C-14 9 14 9 16 0 Z" fill="#8a3a1c"/>
+      <path d="M-16 0 L16 0" stroke="#d8823a" stroke-width="2"/>
+      <path d="M0 -24 C-6 -12 -4 -3 0 -2 C4 -3 6 -12 0 -24 Z" fill="url(#flame)"/>
+    </g>
+    <!-- a petal -->
+    <ellipse id="petal" rx="6" ry="3" fill="#ffae3a"/>
+  </defs>
+
+  <!-- sky, setting sun, first stars -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="800" cy="520" r="430" fill="url(#sun)"/>
+  <g fill="#fff" opacity="0.7">
+    <circle cx="140" cy="70" r="1.6"/><circle cx="420" cy="40" r="1.2"/><circle cx="610" cy="110" r="1"/><circle cx="980" cy="60" r="1.4"/>
+    <circle cx="1210" cy="35" r="1.1"/><circle cx="1460" cy="90" r="1.6"/><circle cx="300" cy="150" r="0.9"/><circle cx="1330" cy="160" r="1"/>
+  </g>
+
+  <!-- far temples on the horizon (centre), with their reflection -->
+  <g id="far" fill="#5a2742" opacity="0.85">
+    <use href="#shikhara" transform="translate(800 520) scale(0.95)"/>
+    <use href="#shikhara" transform="translate(705 520) scale(0.5)"/>
+    <use href="#shikhara" transform="translate(895 520) scale(0.5)"/>
+    <use href="#chhatri" transform="translate(620 520) scale(0.6)"/>
+    <use href="#chhatri" transform="translate(985 520) scale(0.55)"/>
+    <rect x="540" y="500" width="520" height="22"/>
+  </g>
+  <!-- the river begins at the horizon; the banks stand in it -->
+  <rect x="0" y="522" width="1600" height="268" fill="url(#water)"/>
+  <g fill="#ffd27a"><circle cx="800" cy="470" r="2.4"/><circle cx="785" cy="430" r="1.6"/><circle cx="815" cy="430" r="1.6"/><circle cx="705" cy="500" r="1.6"/><circle cx="895" cy="500" r="1.6"/></g>
+
+  <!-- left bank: tall temples and a pillared hall -->
+  <g fill="url(#templeL)">
+    <use href="#shikhara" transform="translate(120 600) scale(1.9)"/>
+    <use href="#shikhara" transform="translate(330 610) scale(1.35)"/>
+    <use href="#chhatri" transform="translate(470 610) scale(1.1)"/>
+    <rect x="0" y="560" width="560" height="70"/>
+    <g fill="#24122c"><rect x="20" y="565" width="14" height="60"/><rect x="70" y="565" width="14" height="60"/><rect x="120" y="565" width="14" height="60"/><rect x="170" y="565" width="14" height="60"/><rect x="220" y="565" width="14" height="60"/></g>
+  </g>
+  <g fill="#ffcf6e"><circle cx="120" cy="460" r="3"/><circle cx="330" cy="520" r="2.6"/><circle cx="470" cy="560" r="2.4"/><circle cx="48" cy="590" r="2.4"/><circle cx="98" cy="590" r="2.4"/><circle cx="148" cy="590" r="2.4"/><circle cx="198" cy="590" r="2.4"/></g>
+
+  <!-- right bank: domes and towers -->
+  <g fill="url(#templeR)">
+    <use href="#shikhara" transform="translate(1470 600) scale(1.75)"/>
+    <use href="#chhatri" transform="translate(1290 600) scale(1.4)"/>
+    <use href="#shikhara" transform="translate(1150 610) scale(1.05)"/>
+    <rect x="1060" y="560" width="540" height="70"/>
+    <g fill="#24122c"><rect x="1380" y="565" width="14" height="60"/><rect x="1430" y="565" width="14" height="60"/><rect x="1480" y="565" width="14" height="60"/><rect x="1530" y="565" width="14" height="60"/></g>
+  </g>
+  <g fill="#ffcf6e"><circle cx="1470" cy="470" r="3"/><circle cx="1290" cy="520" r="2.6"/><circle cx="1150" cy="540" r="2.4"/><circle cx="1410" cy="590" r="2.4"/><circle cx="1460" cy="590" r="2.4"/><circle cx="1510" cy="590" r="2.4"/></g>
+
+  <!-- the river: colour of the sky, a golden path under the sun, soft reflections of the banks -->
+  <g opacity="0.35" filter="url(#blurV)" transform="translate(0 1084) scale(1 -1)">
+    <use href="#far"/>
+  </g>
+  <g fill="#ffc46a" opacity="0.55" filter="url(#soft)">
+    <ellipse cx="800" cy="540" rx="120" ry="5"/><ellipse cx="800" cy="575" rx="95" ry="4"/><ellipse cx="790" cy="612" rx="70" ry="4"/>
+    <ellipse cx="812" cy="652" rx="55" ry="3"/><ellipse cx="798" cy="695" rx="40" ry="3"/><ellipse cx="805" cy="738" rx="26" ry="2"/>
+  </g>
+  <g fill="#ffd9a0" opacity="0.25">
+    <rect x="0" y="640" width="1600" height="1.5"/><rect x="0" y="700" width="1600" height="1.2"/><rect x="0" y="752" width="1600" height="1"/>
+  </g>
+
+  <!-- diyas floating on the water, with their reflections -->
+  <g>
+    <use href="#diya" transform="translate(560 650) scale(0.6)"/><ellipse cx="560" cy="662" rx="7" ry="14" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+    <use href="#diya" transform="translate(690 700) scale(0.75)"/><ellipse cx="690" cy="716" rx="8" ry="18" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+    <use href="#diya" transform="translate(930 680) scale(0.7)"/><ellipse cx="930" cy="695" rx="8" ry="16" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+    <use href="#diya" transform="translate(1060 640) scale(0.55)"/><ellipse cx="1060" cy="651" rx="6" ry="12" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+    <use href="#diya" transform="translate(410 720) scale(0.8)"/><ellipse cx="410" cy="737" rx="8" ry="18" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+    <use href="#diya" transform="translate(1200 735) scale(0.8)"/><ellipse cx="1200" cy="752" rx="8" ry="18" fill="#ffb14a" opacity="0.35" filter="url(#soft)"/>
+  </g>
+  <!-- a small boat with a lamp -->
+  <g transform="translate(880 625)">
+    <path d="M-60 0 C-40 18 40 18 60 0 Z" fill="#2a1424"/>
+    <rect x="-14" y="-16" width="28" height="16" fill="#3b1c2c"/>
+    <use href="#diya" transform="translate(0 -18) scale(0.55)"/>
+  </g>
+
+  <!-- the ghat steps in front -->
+  <path d="M0 790 L1600 790 L1600 900 L0 900 Z" fill="url(#stone)"/>
+  <g stroke="#a4583c" stroke-opacity="0.45">
+    <path d="M0 790 L1600 790"/><path d="M0 828 L1600 828"/><path d="M0 866 L1600 866"/>
+    <path d="M200 790 L190 900 M420 790 L415 900 M640 790 L638 900 M860 790 L862 900 M1080 790 L1085 900 M1300 790 L1310 900" stroke-opacity="0.2"/>
+  </g>
+  <!-- rows of diyas and marigolds on the steps -->
+  <g>
+    <use href="#diya" transform="translate(70 812) scale(1.5)"/><use href="#diya" transform="translate(170 806) scale(1.1)"/>
+    <use href="#diya" transform="translate(250 812) scale(0.9)"/><use href="#diya" transform="translate(330 808) scale(0.8)"/>
+    <use href="#diya" transform="translate(1530 812) scale(1.5)"/><use href="#diya" transform="translate(1430 806) scale(1.1)"/>
+    <use href="#diya" transform="translate(1350 812) scale(0.9)"/><use href="#diya" transform="translate(1270 808) scale(0.8)"/>
+    <use href="#diya" transform="translate(560 806) scale(0.6)"/><use href="#diya" transform="translate(640 806) scale(0.6)"/>
+    <use href="#diya" transform="translate(960 806) scale(0.6)"/><use href="#diya" transform="translate(1040 806) scale(0.6)"/>
+  </g>
+  <g fill="#ff9a1f">
+    <circle cx="120" cy="848" r="7"/><circle cx="136" cy="852" r="6"/><circle cx="210" cy="846" r="6"/><circle cx="450" cy="848" r="5"/>
+    <circle cx="1480" cy="848" r="7"/><circle cx="1464" cy="852" r="6"/><circle cx="1390" cy="846" r="6"/><circle cx="1150" cy="848" r="5"/>
+    <circle cx="760" cy="850" r="4"/><circle cx="840" cy="852" r="4"/>
+  </g>
+  <g fill="#ffd24a"><circle cx="128" cy="842" r="5"/><circle cx="1472" cy="842" r="5"/><circle cx="220" cy="852" r="4"/><circle cx="1380" cy="852" r="4"/></g>
+
+  <!-- marigold petals and sky lanterns drifting over the river -->
+  <g opacity="0.9">
+    <use href="#petal" transform="translate(620 180) rotate(20)"/><use href="#petal" transform="translate(700 120) rotate(-30)"/>
+    <use href="#petal" transform="translate(760 220) rotate(60)"/><use href="#petal" transform="translate(840 150) rotate(10)"/>
+    <use href="#petal" transform="translate(905 240) rotate(-50)"/><use href="#petal" transform="translate(980 110) rotate(35)"/>
+    <use href="#petal" transform="translate(1040 200) rotate(-10)"/><use href="#petal" transform="translate(560 260) rotate(75)"/>
+    <use href="#petal" transform="translate(1110 280) rotate(25)"/><use href="#petal" transform="translate(500 140) rotate(-65)"/>
+    <use href="#petal" transform="translate(880 300) rotate(45)"/><use href="#petal" transform="translate(730 320) rotate(-20)"/>
+    <use href="#petal" transform="translate(1180 160) rotate(55)"/><use href="#petal" transform="translate(440 230) rotate(15)"/>
+  </g>
+  <g>
+    <circle cx="690" cy="260" r="16" fill="url(#glow)"/><circle cx="690" cy="260" r="5" fill="#ffb24a"/>
+    <circle cx="1000" cy="190" r="14" fill="url(#glow)"/><circle cx="1000" cy="190" r="4.5" fill="#ffb24a"/>
+    <circle cx="820" cy="90" r="11" fill="url(#glow)"/><circle cx="820" cy="90" r="3.5" fill="#ffb24a"/>
+  </g>
+</svg>

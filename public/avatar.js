@@ -200,8 +200,13 @@
       });
     }
   }
+  // Only the words he is READING drift behind him. When he isn't reading, there are no mantras: the dusk ghat
+  // picture (ghat-dusk.svg, in the page behind this canvas) shows instead. Both cross-fade over ~1.5 s.
+  let vFade = 0;
   function drawVerses(t) {
     const dt = Math.min(64, t - (lastT || t)); lastT = t;
+    vFade += ((ALL !== MANTRAS ? 1 : 0) - vFade) * ease(1500);
+    if (vFade < 0.01) return;
     if (!reduceMotion) scroll = (scroll + dt * (0.008 + energy * 0.03 + (reading ? 0.025 : 0))) % bandH;
     const boost = energy * 0.6 + (reading ? 0.35 : 0) + (state === "listening" ? 0.2 : 0);
     ctx.save();
@@ -213,7 +218,7 @@
       const edge = Math.min(1, y / (H * 0.18), (H - y) / (H * 0.18));
       if (edge <= 0) continue;
       ctx.font = `${r.size.toFixed(1)}px "Noto Sans Devanagari", sans-serif`;
-      ctx.fillStyle = `rgba(130,200,255,${(r.alpha * (1 + boost) * edge).toFixed(3)})`;
+      ctx.fillStyle = `rgba(130,200,255,${(r.alpha * (1 + boost) * edge * vFade).toFixed(3)})`;
       const text = ALL_LONG.slice(r.start, r.start + charsPerRow);
       const x = r.shift + (reduceMotion ? 0 : t * r.drift) % 300;
       ctx.fillText(text, x, y);
@@ -331,6 +336,7 @@
       const next = clean.length >= 40 ? clean + "  ·  " : MANTRAS;
       if (next === ALL) return;
       ALL = next;
+      document.getElementById("stage")?.classList.toggle("is-reading", ALL !== MANTRAS);
       ALL_LONG = ALL.repeat(Math.ceil((charsPerRow * 2) / ALL.length) + 1);
       for (const r of rows) r.start = Math.floor(Math.random() * ALL.length);
     },
