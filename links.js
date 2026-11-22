@@ -16,15 +16,29 @@
 
 import { readFile, writeFile, mkdir, stat, unlink, rename } from "node:fs/promises";
 import { createWriteStream, existsSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
 
 const MEDIA_EXT = /\.(mp3|wav|m4a|aac|ogg|oga|opus|flac|mp4|m4v|mkv|webm|mov|avi)(?:$|\?)/i;
 const MAX_MEDIA_BYTES = (Number(process.env.MEDIA_LINK_MAX_MB) || 3000) * 1024 * 1024;
+// yt-dlp needs its helpers (Deno for YouTube's checks, FFmpeg), which winget adds to the USER PATH; a server started
+// before that install does not see them, so the current user PATH is read from Windows and added
+let userPath = null;
+function freshPath() {
+  if (userPath !== null) return userPath;
+  userPath = "";
+  if (process.platform !== "win32") return userPath;
+  try {
+    const raw = execFileSync("reg", ["query", "HKCU\\Environment", "/v", "Path"], { windowsHide: true }).toString();
+    userPath = ((raw.match(/Path\s+REG_(?:EXPAND_)?SZ\s+(.+)/i) || [])[1] || "").trim().replace(/%([^%]+)%/g, (m, k) => process.env[k] || m);
+  } catch {}
+  return userPath;
+}
 const exec = (cmd, args, opts = {}) => new Promise((resolve, reject) =>
-  execFile(cmd, args, { windowsHide: true, maxBuffer: 32 * 1024 * 1024, timeout: opts.timeout || 0, ...opts }, (err, stdout, stderr) =>
+  execFile(cmd, args, { windowsHide: true, maxBuffer: 32 * 1024 * 1024, timeout: opts.timeout || 0,
+    env: { ...process.env, PATH: [process.env.PATH, freshPath()].filter(Boolean).join(path.delimiter) }, ...opts }, (err, stdout, stderr) =>
     err ? reject(Object.assign(err, { stderr: String(stderr || "").slice(-400) })) : resolve(String(stdout))));
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
@@ -67,7 +81,15 @@ export function createLinkLearner(rootDir, { onNewFile = () => {} } = {}) {
   let ytdlp; // undefined = not looked for yet, null = not installed, string = how to run it
   async function findYtDlp() {
     if (ytdlp !== undefined) return ytdlp;
-    const candidates = [process.env.YTDLP_PATH, path.join(rootDir, "tools", "yt-dlp", process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp"), "yt-dlp"].filter(Boolean);
+    // where "winget install yt-dlp" puts it (found even before Windows refreshes this program's PATH)
+    let winget = null;
+    try {
+      const pk = path.join(process.env.LOCALAPPDATA || "", "Microsoft", "WinGet", "Packages");
+      const d = (await import("node:fs")).readdirSync(pk).find((n) => n.startsWith("yt-dlp.yt-dlp_"));
+      if (d) winget = path.join(pk, d, "yt-dlp.exe");
+    } catch {}
+    const candidates = [process.env.YTDLP_PATH, path.join(rootDir, "tools", "yt-dlp", process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp"),
+      winget, "yt-dlp"].filter(Boolean);
     for (const c of candidates) {
       if (c !== "yt-dlp" && !existsSync(c)) continue;
       try { await exec(c, ["--version"], { timeout: 20_000 }); ytdlp = c; console.log(`🎬 yt-dlp found (${c}): YouTube videos without subtitles will be listened to`); return ytdlp; } catch {}
