@@ -41,7 +41,7 @@ body {
    the night-blue, the gold horizon and diyas glow through). While he reads, it fades out and his words drift instead. */
 .ghat-bg {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 60%;
-  opacity: 0.4; mix-blend-mode: screen; pointer-events: none; user-select: none;
+  opacity: 0.1; mix-blend-mode: screen; pointer-events: none; user-select: none;
   transition: opacity 1.6s ease;
 }
 .stage.is-reading .ghat-bg { opacity: 0; }
