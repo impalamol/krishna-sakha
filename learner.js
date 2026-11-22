@@ -272,7 +272,7 @@ export function createLearner(rootDir) {
   // 60-second segments keep each Whisper call small: the medium model holds about 0.6 GB per minute of audio
   const SEGMENT = Number(process.env.WHISPER_SEGMENT) || 60; // seconds
   // Most recordings are Hindi; a file named "...English..." is English; WHISPER_LANGUAGE in .env changes the default
-  const speechLanguage = (id) => (/\b(english|eng)\b/i.test(id) ? "english" : /\bsanskrit\b/i.test(id) ? "sanskrit" : /\bmarathi\b/i.test(id) ? "marathi" : (process.env.WHISPER_LANGUAGE || "hindi"));
+  const speechLanguage = (id) => (/\b(english|eng)\b|\[en\]/i.test(id) ? "english" : /\bsanskrit\b/i.test(id) ? "sanskrit" : /\bmarathi\b/i.test(id) ? "marathi" : (process.env.WHISPER_LANGUAGE || "hindi"));
 
   // Whisper runs in a separate process (asr-worker.mjs). If it runs out of memory only the worker dies;
   // the server keeps answering and the segment is retried with a fresh worker. The worker is also

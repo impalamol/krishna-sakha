@@ -468,7 +468,7 @@ async function handleChat(req, res) {
     // ...and plain-text labels instead of XML tags: a small model copies tags like <passage index="1"> into its answer
     const ctxText = ctx && ctx.slice(0, ctxChars)
       .replace(/\((Book|Text) name, page N\)/g, "(the exact book title from the passage, its page number)")
-      .replace(/<passage index="\d+" book="([^"]*)"(?: place="([^"]*)")?(?: page="([^"]*)")?>/g, (m, b, pl, p) => `--- From "${b}"${pl ? `, ${pl}` : p ? `, page ${p}` : ""}:`)
+      .replace(/<passage index="\d+" book="([^"]*)"(?: place="([^"]*)")?(?: page="([^"]*)")?>/g, (m, b, pl, p) => `--- From "${b}"${pl ? `, ${pl}` : p ? (String(p).includes(":") ? ` (a recording), at ${p}` : `, page ${p}`) : ""}:`)
       .replace(/<understood text="([^"]*)" kind="[^"]*"(?: pages="([^"]*)")?>/g, (m, t, p) => `--- What I understood from "${t}"${p ? ` (pages ${p})` : ""}:`)
       .replace(/<understanding_of_text title="([^"]*)">/g, (m, t) => `--- My understanding of the whole text "${t}":`)
       .replace(/<page book="([^"]*)" number="([^"]*)">/g, (m, b, n) => `--- Page ${n} of "${b}":`)
