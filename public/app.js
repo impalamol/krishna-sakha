@@ -292,7 +292,8 @@
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payload, voice }),
+        // who is in front of the camera (man / woman / child), if the camera is on: he adapts how he answers
+        body: JSON.stringify({ messages: payload, voice, visitor: window.SanatanCamera?.visitor || undefined }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {

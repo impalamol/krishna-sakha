@@ -487,6 +487,13 @@ body {
 .cam-bar { display: flex; align-items: center; gap: 6px; padding: 5px 8px; font-size: 11px; color: #c8f7e8; background: rgba(4, 20, 30, 0.9); }
 .cam-bar span { flex: 1; }
 .cam-bar button { background: none; border: none; color: #c8f7e8; cursor: pointer; font-size: 13px; }
+.cam-who {
+  display: block; width: 100%; padding: 5px 8px; border: none; border-top: 1px solid rgba(127, 255, 212, 0.18);
+  background: rgba(4, 20, 30, 0.92); color: #c8f7e8; font: 500 11px var(--font-ui); text-align: left; cursor: pointer;
+}
+.cam-who[hidden] { display: none; }
+.cam-who:hover { background: rgba(10, 50, 60, 0.95); }
+.cam-who:focus-visible { outline: 2px solid #7fffd4; outline-offset: -2px; }
 @media (max-width: 860px) {
   .cam-fab { right: 18px; bottom: 92px; width: 52px; height: 52px; }
   .cam-box { right: 84px; bottom: 16px; width: 140px; }
