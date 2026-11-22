@@ -45,7 +45,7 @@ const SYSTEM_PROMPT = readFileSync(path.join(__dirname, "prompt", "sanatan-syste
 // means it starts speaking sooner (the GPU reads ~125 tokens/s before writing the first word)
 const LOCAL_PROMPT = readFileSync(path.join(__dirname, "prompt", "local-brain.md"), "utf8");
 const LOCAL_CONTEXT_CHARS = 4_000;   // less to read before the first word: faster replies
-const LOCAL_VOICE_CONTEXT_CHARS = 1_500;
+const LOCAL_VOICE_CONTEXT_CHARS = 1_200;
 // languages the local model writes poorly: it answers in English and the offline translator (NLLB) converts it
 const LOCAL_TRANSLATE = new Set((process.env.LOCAL_TRANSLATE_LANGS ?? "ml").split(",").map((s) => s.trim()).filter(Boolean));
 const LANG_CODE = { Hindi: "hi", Marathi: "mr", Bengali: "bn", Tamil: "ta", Telugu: "te", Kannada: "kn", Malayalam: "ml",
@@ -107,7 +107,7 @@ if (process.env.UNDERSTAND !== "false") {
 const ttsHits = new Map(); // separate, more generous limit for voice: ip -> timestamps
 
 // Find passages from the user's books for the latest question and format them for the model.
-async function libraryContext(messages, { compact = false } = {}) {
+async function libraryContext(messages, { compact = false, voice = false } = {}) {
   const q = messages[messages.length - 1].content.replace(/\[[A-Z ]+:[^\]]*\]\s*/g, "");
   // a question about one page ("page 65 of Kundalini Sadhana", "पेज 65 पर क्या है?"): give the model that page
   const pageNo = pageAsked(q);
@@ -133,7 +133,8 @@ async function libraryContext(messages, { compact = false } = {}) {
         "\n\nWrite a clear summary in your own words from these, in the user's language, and cite pages where useful.";
     }
   }
-  const opts = compact ? { limit: 3, snippetLen: 700 } : { limit: 6, snippetLen: 1400 };
+  // a spoken answer needs less to read: every token read on a laptop GPU delays the first word (~130 tokens/s hot)
+  const opts = voice ? { limit: 2, snippetLen: 420 } : compact ? { limit: 3, snippetLen: 700 } : { limit: 6, snippetLen: 1400 };
   // the search also crosses languages by sound (English/Tamil question -> Hindi books), see sound-search.js
   const { results } = await knowledge.search(q, opts);
   const kw = "";
@@ -146,9 +147,12 @@ async function libraryContext(messages, { compact = false } = {}) {
     const whole = !compact && aboutBook && (await understanding.of(aboutBook));
     if (whole) understood = `<understanding_of_text title="${knowledge.titleOf(aboutBook)}">\n${JSON.stringify(whole)}\n</understanding_of_text>`;
     else {
-      const found = await understanding.relevant(q, { limit: compact ? 3 : 8, english: kw });
+      const found = await understanding.relevant(q, { limit: voice ? 1 : compact ? 3 : 8, english: kw });
+      // compact: each note is cut to its first sentences, so the book passages still fit in the budget after it
+      const cap = voice ? 320 : compact ? 600 : Infinity;
+      const cut = (t) => (t.length <= cap ? t : t.slice(0, cap).replace(/[^.!?।]*$/, "") || t.slice(0, cap));
       if (found.length) understood = found.map((e) =>
-        `<understood text="${e.title}" kind="${e.type}"${e.pages ? ` pages="${e.pages}"` : ""}>\n${e.head}\n${e.body}\n</understood>`).join("\n");
+        `<understood text="${e.title}" kind="${e.type}"${e.pages ? ` pages="${e.pages}"` : ""}>\n${e.head}\n${cut(String(e.body || ""))}\n</understood>`).join("\n");
     }
   } catch (e) { console.error("[understanding]", e.message); }
 
@@ -187,14 +191,42 @@ function allow(ip) {
   hits.set(ip, list);
   return true;
 }
+// a lighter limit for the other things a visitor can ask for (book search, summaries, the 📖 window)
+const lightHits = new Map();
+function allowLight(ip, max = 120) {
+  const now = Date.now();
+  const list = (lightHits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (list.length >= max) { lightHits.set(ip, list); return false; }
+  list.push(now); lightHits.set(ip, list);
+  return true;
+}
+// forget old entries, so these maps never grow without end
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, list] of hits) if (!list.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(ip);
+  for (const m of [hits, lightHits, ttsHits]) for (const [ip, list] of m) if (!list.some((t) => now - t < RATE_WINDOW_MS)) m.delete(ip);
+  for (const [ip, f] of ownerFails) if (!(f.until > now)) ownerFails.delete(ip);   // wrong tries are forgotten after a while
 }, RATE_WINDOW_MS).unref();
 
+// The visitor's address, for the rate limits. Forwarding headers are believed ONLY when the request comes from this
+// computer (the Cloudflare tunnel connects from localhost and sets CF-Connecting-IP itself); anyone else could
+// write any X-Forwarded-For they like and get unlimited questions.
 function clientIp(req) {
+  const direct = req.socket.remoteAddress || "unknown";
+  if (!/^(::1|127\.|::ffff:127\.)/.test(direct)) return direct;
+  const cf = req.headers["cf-connecting-ip"];
+  if (typeof cf === "string" && cf.trim()) return cf.trim();
   const fwd = req.headers["x-forwarded-for"];
-  return (typeof fwd === "string" && fwd.split(",")[0].trim()) || req.socket.remoteAddress || "unknown";
+  return (typeof fwd === "string" && fwd.split(",").pop().trim()) || direct;
+}
+
+// Owner password guessing: 8 wrong tries from one address lock it out for 15 minutes.
+const ownerFails = new Map(); // ip -> { n, until }
+function ownerLocked(ip) { const f = ownerFails.get(ip); return !!f && f.until > Date.now(); }
+function noteOwnerFail(ip) {
+  const f = ownerFails.get(ip) || { n: 0, until: 0 };
+  if (f.until && f.until < Date.now()) { f.n = 0; f.until = 0; }
+  if (++f.n >= 8) { f.until = Date.now() + 15 * 60 * 1000; console.warn(`[security] owner password: too many wrong tries from ${ip}; locked 15 minutes`); }
+  ownerFails.set(ip, f);
 }
 
 // ---------- helpers ----------
@@ -274,8 +306,12 @@ async function handleChat(req, res) {
     // greetings, thanks, "what is your name": the prepared reply is instant (and never a garbled name)
     if (!local.available() || smallTalk(plain) || GREETING.test(plain)) return false;
     learner.hold(120_000);                        // the computer's power goes to this answer, not to reading
-    let ctx = null;
-    try { ctx = await libraryContext(messages, { compact: true }); } catch (e) { console.error("[library search]", e.message); }
+    const tStart = Date.now();
+    let ctx = null, tFirst = 0;
+    const voice = body.voice === true;
+    const long = /\b(detail|explain fully|in depth|long)\b|विस्तार|विस्तृत/i.test(raw);
+    try { ctx = await libraryContext(messages, { compact: true, voice: voice && !long }); } catch (e) { console.error("[library search]", e.message); }
+    const tSearch = Date.now() - tStart;
     const ctl = new AbortController();
     res.on("close", () => ctl.abort());
     let wrote = false;
@@ -283,8 +319,6 @@ async function handleChat(req, res) {
     // reuses what it already read (its prompt cache) and only reads the newest question. The library context
     // goes into the newest message only. In a live voice conversation the context is smaller and replies are
     // short, so he starts speaking within a few seconds, like a person talking.
-    const voice = body.voice === true;
-    const long = /\b(detail|explain fully|in depth|long)\b|विस्तार|विस्तृत/i.test(raw);
     const ctxChars = voice && !long ? LOCAL_VOICE_CONTEXT_CHARS : LOCAL_CONTEXT_CHARS;
     // a small model drifts into English in follow-up turns: name the reply language on every turn
     const q = raw.replace(/\[[A-Z ]+:[^\]]*\]\s*/g, "").trim();
@@ -361,6 +395,7 @@ async function handleChat(req, res) {
         // less randomness outside English: a small model then strays less into words of other languages
         temperature: /^English/.test(thinkIn) ? 0.6 : 0.35,
         onText: (t) => {
+          if (!tFirst) tFirst = Date.now() - tStart;
           const c = filter.push(t);
           if (c) out(c);
           // the model wandered into another script: stop it now and keep the good part (no long silent wait)
@@ -375,6 +410,9 @@ async function handleChat(req, res) {
         if (tail && !res.destroyed) send({ t: tail });
       }
       send({ done: true, source: viaTranslation ? "local+translation" : "local" });
+      const s = local.lastStats();
+      if (s) console.log(`[timing] search ${tSearch}ms, first word ${tFirst}ms | read ${s.promptTokens} tokens in ${s.promptMs}ms` +
+        `${s.loadMs > 500 ? `, load ${s.loadMs}ms` : ""} | wrote ${s.tokens} tokens at ${(s.tokens / (s.genMs / 1000 || 1)).toFixed(1)}/s`);
       return true;
     } catch (e) {
       if (derailed) { console.warn(`[local brain] stopped an answer that drifted out of ${langName}`); send({ done: true, source: "local" }); return true; }
@@ -490,19 +528,41 @@ const TYPES = {
   ".webmanifest": "application/manifest+json",
 };
 
+// The page may only run its own scripts and talk to this server (plus Google Fonts): if a book or an answer ever
+// contained HTML, it still could not run code or send a visitor's data anywhere.
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": [
+    "default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data: blob:", "media-src 'self' blob:", "connect-src 'self'",
+    "worker-src 'self' blob:", "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
+  ].join("; "),
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+};
+
 async function serveStatic(req, res) {
-  const urlPath = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  let urlPath;
+  try { urlPath = decodeURIComponent(new URL(req.url, "http://x").pathname); }
+  catch { res.writeHead(400); return res.end(); }                    // malformed %-escape
+  if (urlPath.includes("\0")) { res.writeHead(400); return res.end(); }
   const rel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
   const file = path.resolve(PUBLIC_DIR, rel);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(403); return res.end(); }
   try {
     const s = await stat(file);
     if (!s.isFile()) throw new Error("not a file");
+    const ext = path.extname(file);
     res.writeHead(200, {
-      "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
-      "Cache-Control": "no-cache",
-      "X-Content-Type-Options": "nosniff",
+      ...SECURITY_HEADERS,
+      "Content-Type": TYPES[ext] || "application/octet-stream",
+      // the big MediaPipe files never change: let the browser keep them; the app's own files are re-checked
+      "Cache-Control": rel.startsWith("vendor/") ? "public, max-age=604800" : "no-cache",
+      "Content-Length": s.size,
     });
+    if (req.method === "HEAD") return res.end();
     res.end(await readFile(file));
   } catch {
     res.writeHead(404, { "Content-Type": "text/plain" });
@@ -527,7 +587,17 @@ const server = http.createServer(async (req, res) => {
     }
     // anyone may let him go back to his book after a conversation (the owner's Pause switch stays owner-only)
     if (req.method === "POST" && url.pathname === "/api/learner/continue") { learner.release(); return sendJson(res, 200, learner.status()); }
+    // owner-only actions: stop password guessing (8 wrong tries -> 15 minutes locked)
+    if (url.pathname.startsWith("/api/library") || url.pathname === "/api/learner/pause" || url.pathname === "/api/learner/resume") {
+      const ip = clientIp(req);
+      if (ownerLocked(ip)) { req.resume(); return sendJson(res, 429, { error: "Too many wrong passwords. Please wait 15 minutes." }); }
+      if (process.env.ADMIN_PASSWORD && !isOwner(req)) noteOwnerFail(ip);
+    }
     if (await handleLibrary(req, res, url)) return;
+    // searches, summaries and the 📖 window cost real work (and AI credits for summaries): limited per visitor
+    if (url.pathname.startsWith("/api/knowledge/") && !allowLight(clientIp(req), url.pathname === "/api/knowledge/summary" ? 30 : 120)) {
+      return sendJson(res, 429, { error: "Too many requests. Please rest a few minutes. 🙏" });
+    }
     if (req.method === "GET" && url.pathname === "/api/knowledge") {
       const books = knowledge.books();
       // links that could not become a file (e.g. YouTube without subtitles) are listed too
@@ -619,9 +689,16 @@ const server = http.createServer(async (req, res) => {
     else res.end();
   }
 });
-// No time limit on requests, so uploads on slow connections are never cut off.
+// No time limit on a request's body, so uploads on slow connections are never cut off; but a client must send its
+// headers within 20 s, so nobody can hold hundreds of connections open by sending nothing (a "slowloris" attack).
 server.requestTimeout = 0;
 server.timeout = 0;
+server.headersTimeout = 20_000;
+server.keepAliveTimeout = 10_000;
+server.maxHeadersCount = 100;
+// A bug in one request must never take Krishna Sakha down for everyone: log it and keep serving.
+process.on("unhandledRejection", (e) => console.error("[unhandled]", e?.stack || e));
+process.on("uncaughtException", (e) => { console.error("[uncaught]", e?.stack || e); if (e?.code === "EADDRINUSE") process.exit(1); });
 server.on("error", (e) => {
   if (e.code === "EADDRINUSE") {
     console.error(`Port ${PORT} is already used by another program. Set a different PORT in .env (e.g. PORT=3100) and start again.`);
@@ -629,6 +706,10 @@ server.on("error", (e) => {
   }
   throw e;
 });
-server.listen(PORT, () => {
-  console.log(`🕉  Krishna Sakha is live at http://localhost:${PORT}  (model: ${MODEL}, effort: ${EFFORT})`);
+// Only this computer can reach the server by default (the Cloudflare tunnel connects from here too).
+// HOST=0.0.0.0 in .env opens it to the local network (phones on the same Wi-Fi).
+const HOST = process.env.HOST || "127.0.0.1";
+server.listen(PORT, HOST, () => {
+  console.log(`🕉  Krishna Sakha is live at http://localhost:${PORT}  (model: ${MODEL}, effort: ${EFFORT}${HOST === "127.0.0.1" ? ", this computer only" : `, host ${HOST}`})`);
+  if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length < 10) console.warn("⚠  ADMIN_PASSWORD is short; use 10+ characters so it can't be guessed.");
 });

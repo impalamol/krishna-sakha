@@ -17,6 +17,7 @@ let gpuLayers = process.env.OLLAMA_GPU_LAYERS === "auto" ? null : Number(process
 export function createLocalBrain() {
   const enabled = process.env.LOCAL_BRAIN !== "false";
   let ok = false, checkedAt = 0, checking = null, warned = false, busy = 0;
+  let stats = null; // timings of the last answer (how much it read, how fast it wrote)
   // Visitors come first: while someone is being answered ("foreground"), background study must stop at once
   // and give the GPU back. claim() marks a visitor's turn; lastForeground tells the study how long it's been quiet.
   let foreground = 0, lastForeground = 0, lastSeen = 0;
@@ -96,6 +97,8 @@ export function createLocalBrain() {
           if (ev.error) throw new Error(`ollama: ${ev.error}`);
           const t = ev.message?.content || "";
           if (t) { all += t; onText(t); }
+          if (ev.done) stats = { promptTokens: ev.prompt_eval_count || 0, promptMs: Math.round((ev.prompt_eval_duration || 0) / 1e6),
+            tokens: ev.eval_count || 0, genMs: Math.round((ev.eval_duration || 0) / 1e6), loadMs: Math.round((ev.load_duration || 0) / 1e6) };
         }
       }
       return all;
@@ -115,7 +118,7 @@ export function createLocalBrain() {
   check().catch(() => {});
   return {
     enabled, model: MODEL, name: `ollama:${MODEL}`, check, available, chat, json, busy: () => busy > 0,
-    claim, seen, visitorWaiting: () => foreground > 0,
+    claim, seen, visitorWaiting: () => foreground > 0, lastStats: () => stats,
     quietFor: () => (foreground > 0 ? 0 : Date.now() - Math.max(lastForeground, lastSeen)),
   };
 }

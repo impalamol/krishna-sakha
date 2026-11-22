@@ -37,8 +37,8 @@ function publish(url) {
   console.log("🌐 GitHub link updated: https://impalamol.github.io/krishna-sakha/  ->  " + url);
 }
 
-console.log(`Starting the tunnel to http://localhost:${PORT} …`);
-const cf = spawn(CLOUDFLARED, ["tunnel", "--no-autoupdate", "--url", `http://localhost:${PORT}`], { stdio: ["ignore", "pipe", "pipe"] });
+console.log(`Starting the tunnel to http://127.0.0.1:${PORT} …`);
+const cf = spawn(CLOUDFLARED, ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${PORT}`], { stdio: ["ignore", "pipe", "pipe"] });
 let published = false;
 const onData = (buf) => {
   const m = String(buf).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);

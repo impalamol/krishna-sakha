@@ -185,28 +185,51 @@
   }
 
   // ---------- streaming speech: speak whole sentences as they arrive ----------
-  function makeSpeaker() {
-    let spoken = 0;
-    return {
-      feed(raw, final) {
-        let cut = -1;
-        if (final) cut = raw.length;
-        else {
-          const re = /([.!?।॥:](?=\s)|\n\n)/g;
-          let m;
-          while ((m = re.exec(raw)) && m.index < raw.length - 1) {
-            if (m.index + 1 > spoken) cut = m.index + 1;
-          }
-          // don't cut inside a code block
-          if (cut > 0 && (raw.slice(0, cut).match(/```/g) || []).length % 2) cut = -1;
+  // Smooth speech: when the answer is written slower than he speaks (a hot laptop GPU slows itself down), speaking
+  // each sentence at once leads to silences in the middle of the answer. So at the START he waits (still in his
+  // "thinking" look) until enough is written that the rest will arrive before he runs out of words, at most 3 s.
+  // Once he has begun, every sentence is spoken as soon as it is complete.
+  function makeSpeaker({ voice = false } = {}) {
+    let spoken = 0, started = false, firstAt = 0, readyAt = 0, timer = 0, last = "";
+    const expected = voice ? 360 : 800;               // typical answer length (characters) in each mode
+    const speechCps = () => 13.5 * (Voice.settings.rate || 1);
+    function cutAt(raw, final) {
+      if (final) return raw.length;
+      let cut = -1;
+      const re = /([.!?।॥:](?=\s)|\n\n)/g;
+      let m;
+      while ((m = re.exec(raw)) && m.index < raw.length - 1) {
+        if (m.index + 1 > spoken) cut = m.index + 1;
+      }
+      // don't cut inside a code block
+      if (cut > 0 && (raw.slice(0, cut).match(/```/g) || []).length % 2) cut = -1;
+      return cut;
+    }
+    function feed(raw, final) {
+      last = raw;
+      if (!firstAt && raw) firstAt = performance.now();
+      const cut = cutAt(raw, final);
+      if (cut <= spoken) return;
+      if (!started && !final) {
+        const now = performance.now();
+        if (!readyAt) readyAt = now;
+        const secs = Math.max(0.3, (now - firstAt) / 1000);
+        const rate = raw.length / secs;                                  // characters written per second
+        const bufferedSecs = (cut - spoken) / speechCps();                // speech ready to play
+        const remainingSecs = Math.max(0, expected - raw.length) / rate;  // time to write the rest
+        if (bufferedSecs + 0.5 < remainingSecs && now - readyAt < 3000) {
+          clearTimeout(timer);
+          timer = setTimeout(() => feed(last, false), 400);               // check again even if no new text comes
+          return;
         }
-        if (cut > spoken) {
-          const piece = raw.slice(spoken, cut);
-          spoken = cut;
-          if (piece.trim()) Voice.speak(piece);
-        }
-      },
-    };
+      }
+      clearTimeout(timer);
+      started = true;
+      const piece = raw.slice(spoken, cut);
+      spoken = cut;
+      if (piece.trim()) Voice.speak(piece);
+    }
+    return { feed, cancel: () => clearTimeout(timer) };
   }
 
   // a short, natural "let me think" line, spoken only when an answer is slow to start (after 4 s)
@@ -250,7 +273,7 @@
     });
 
     let raw = "", pendingRender = false, errorMsg = "";
-    const speaker = makeSpeaker();
+    const speaker = makeSpeaker({ voice });
     // Answers from the books can take a while (offline translation): say so aloud right away,
     // so a voice-chat visitor knows he heard them instead of hearing silence.
     const holdTimer = setTimeout(() => {
@@ -303,8 +326,9 @@
 
     clearTimeout(holdTimer);
     render();
+    if (controller.signal.aborted) speaker.cancel();
+    else if (raw.trim()) speaker.feed(raw, true);
     if (raw.trim()) {
-      speaker.feed(raw, true);
       history.push({ role: "assistant", content: raw });
       if (Voice.supported.tts) addSpeakAgain(botEl, raw);
     } else {

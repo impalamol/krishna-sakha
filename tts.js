@@ -10,7 +10,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, writeFile, stat, readdir, unlink, rename, utimes } from "node:fs/promises";
 import path from "node:path";
 
 // Male Indian neural voices on Azure (used only when an Azure key is configured).
@@ -183,6 +183,17 @@ export function createTTS(rootDir) {
     });
   }
 
+  // a cached sentence: read it and mark it as recently used (so the cache trimmer keeps it)
+  async function cached(file) {
+    try {
+      if ((await stat(file)).size <= 44) return null;
+      const now = new Date(); utimes(file, now, now).catch(() => {});
+      return await readFile(file);
+    } catch { return null; }
+  }
+  // written under a temporary name first, so another request never reads a half-written file
+  async function save(file, buf) { const tmp = file + "." + process.pid + "." + Math.random().toString(36).slice(2) + ".part"; await writeFile(tmp, buf); await rename(tmp, file); }
+
   /** Returns a WAV Buffer, or null when no natural voice exists for this language. */
   async function synth(text, hint = "", rate = 1) {
     let clean = String(text).replace(/[*_`#>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 700);
@@ -198,14 +209,14 @@ export function createTTS(rootDir) {
       return path.join(CACHE, `${key}.${eng === "edge" ? "mp3" : "wav"}`);
     };
     let file = fileFor(engine);
-    try { if ((await stat(file)).size > 44) return await readFile(file); } catch {}
+    { const hit = await cached(file); if (hit) return hit; }
     await mkdir(CACHE, { recursive: true });
 
     await slot();
     try {
-      if (engine === "azure") await writeFile(file, await azureSynth(clean, lang, rate));
+      if (engine === "azure") await save(file, await azureSynth(clean, lang, rate));
       else if (engine === "edge") {
-        try { await writeFile(file, await edgeSynth(clean, lang, rate)); edgeDownUntil = 0; edgeFails = 0; }
+        try { await save(file, await edgeSynth(clean, lang, rate)); edgeDownUntil = 0; edgeFails = 0; }
         catch (e) {
           if (++edgeFails >= 2) {
             console.warn(`[tts] Microsoft voice unavailable (${e.message}); using the offline Piper voice for 5 minutes.`);
@@ -213,7 +224,7 @@ export function createTTS(rootDir) {
           }
           if (!piperHas(lang)) throw e;
           engine = "piper"; file = fileFor("piper");
-          try { if ((await stat(file)).size > 44) return await readFile(file); } catch {}
+          { const hit = await cached(file); if (hit) return hit; }
           try { await piperFast(clean, lang, rate, file); } catch { await piperSynth(clean, lang, rate, file); }
         }
       } else {
@@ -232,6 +243,27 @@ export function createTTS(rootDir) {
       try { worker(lang, rate); } catch { /* ignore: falls back to on-demand */ }
     }
   }
+
+  // The voice cache must not fill the disk: above TTS_CACHE_MB (default 400 MB) the least recently used
+  // sentences are removed (greetings and other often-used lines are touched on every use, so they stay).
+  const CACHE_MAX = (Number(process.env.TTS_CACHE_MB) || 400) * 1024 * 1024;
+  async function prune() {
+    let files = [];
+    try { files = await readdir(CACHE); } catch { return; }
+    const list = [];
+    for (const f of files) { try { const s = await stat(path.join(CACHE, f)); list.push({ f, size: s.size, t: s.mtimeMs }); } catch {} }
+    let total = list.reduce((a, x) => a + x.size, 0);
+    if (total <= CACHE_MAX) return;
+    list.sort((a, b) => a.t - b.t);
+    let removed = 0;
+    for (const x of list) {
+      if (total <= CACHE_MAX * 0.8) break;
+      try { await unlink(path.join(CACHE, x.f)); total -= x.size; removed++; } catch {}
+    }
+    console.log(`[tts] voice cache trimmed: ${removed} old sentences removed`);
+  }
+  setTimeout(() => prune().catch(() => {}), 30_000).unref();
+  setInterval(() => prune().catch(() => {}), 6 * 60 * 60 * 1000).unref();
 
   return { synth, info, warm };
 }
