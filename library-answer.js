@@ -382,7 +382,7 @@ export async function answerFromLibrary(messages, { knowledge, learner, book = "
   for (const r of results) {
     i++;
     const text = await tr(trim(cleanSnippet(r.text)));     // the passage itself, in the selected language
-    put(`**${i}. ${r.book}**${r.page ? (String(r.page).includes(":") ? ` (⏱ ${r.page})` : ` (${pageWord} ${r.page})`) : ""}\n\n> ${text}\n\n`);
+    put(`**${i}. ${r.book}**${r.ref ? ` (${r.ref})` : r.page ? (String(r.page).includes(":") ? ` (⏱ ${r.page})` : ` (${pageWord} ${r.page})`) : ""}\n\n> ${text}\n\n`);
   }
   const translated = translator && results.some((r) => translator.needsTranslation(r.text, lang));
   put(`[pause]\n\n_${await w("outro")}${translated ? " " + (TRANSLATED_NOTE[lang] || (await tr(TRANSLATED_NOTE.en))) : ""}_`);

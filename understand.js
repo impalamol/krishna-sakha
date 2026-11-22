@@ -126,7 +126,17 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
     try { return Math.round((await stat(path.join(learner.knowledgeDir, `${id}.txt`))).mtimeMs); } catch { return 0; }
   }
 
-  // texts that are read (searchable) but not yet understood, scriptures first, then smallest first
+  let priCache = null, priAt = 0;
+  async function studyPriority() {
+    if (priCache && Date.now() - priAt < 10 * 60 * 1000) return priCache;
+    priCache = new Map(); priAt = Date.now();
+    try {
+      for (const c of JSON.parse(await readFile(path.join(rootDir, "library", "catalogue.json"), "utf8"))) if (c.file) priCache.set(c.file, c.study ?? 9);
+    } catch { /* no catalogue: every text is equal */ }
+    return priCache;
+  }
+
+  // texts that are read (searchable) but not yet understood: most important first (catalogue), then smallest first
   async function nextText() {
     await loadIndex();
     const list = knowledge.books().filter((b) => b.searchable);
@@ -139,13 +149,19 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
       if (done?.failedVersion === v && !redo) continue;
       todo.push({ b, v, size: b.chars || b.pages || 0, redo });
     }
-    todo.sort((x, y) => (x.redo - y.redo) || (/Online Sources/.test(y.b.id) - /Online Sources/.test(x.b.id)) || (x.size - y.size));
+    // the library catalogue (scripts/corpus) says which texts matter most: the Gita, the principal Upanishads and the
+    // Yoga Sutras are studied first (study 1), the Brahmanas and ritual sutras last (study 5); at the same level the
+    // English translation comes before the Sanskrit original (the local model explains far better from English)
+    const pri = await studyPriority();
+    const level = (b) => pri.get(b.id.replace(/^books\//, "")) ?? 9;
+    const sanskrit = (b) => (/\(Sanskrit, GRETIL\)/.test(b.id) ? 1 : 0);
+    todo.sort((x, y) => (x.redo - y.redo) || (level(x.b) - level(y.b)) || (sanskrit(x.b) - sanskrit(y.b)) || (x.size - y.size));
     return todo[0] || null;
   }
 
   async function parts(id, engine = "claude") {
     const raw = (await readFile(path.join(learner.knowledgeDir, `${id}.txt`), "utf8")).replace(/^#.*\n/gm, "");
-    const units = raw.split(/(?=\[(?:page \d+|time [\d:]+)\])/);
+    const units = raw.split(/(?=\[(?:page \d+|time [\d:]+|ref [^\]\n]+)\])/);
     const target = engine === "local"
       ? Math.max(LOCAL_PART_CHARS, Math.ceil(raw.length / LOCAL_MAX_PARTS))
       : Math.max(PART_CHARS, Math.ceil(raw.length / MAX_PARTS));

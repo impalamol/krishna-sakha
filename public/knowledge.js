@@ -250,7 +250,7 @@
         return;
       }
       results.innerHTML = `<p class="hint">${d.results.length} passages found in ${d.searched} books:</p>` + d.results.map((r) =>
-        `<article class="hit"><header><strong>${esc(r.book)}</strong>${r.page ? `<span>${String(r.page).includes(":") ? "⏱ " : "page "}${r.page}</span>` : ""}</header>` +
+        `<article class="hit"><header><strong>${esc(r.book)}</strong>${r.ref ? `<span>${esc(r.ref)}</span>` : r.page ? `<span>${String(r.page).includes(":") ? "⏱ " : "page "}${r.page}</span>` : ""}</header>` +
         `<p>${highlight(r.text, d.words)}</p></article>`).join("");
       results.querySelectorAll(".hit").forEach((el, i) => el.appendChild(listenButton(d.results[i].text.replace(/^…\s*|\s*…$/g, ""))));
     } catch {

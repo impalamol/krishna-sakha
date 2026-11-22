@@ -192,7 +192,8 @@ export function createLearner(rootDir) {
     Object.assign(now, { state: "reading", mode: "text", id: `${folder}/${rel}`, file: path.basename(rel), folder, page: 0, pages: 0, startedAt: Date.now() });
     try {
       const { text, pages } = await reader();
-      const verdict = judge(text, pages);
+      // clean scripture texts (scripts/corpus) say so in their header: never send them to OCR, whatever the script
+      const verdict = TEXT_EXT.includes(ext) && /^# clean: yes\s*$/m.test(text.slice(0, 3000)) ? { status: "learned", note: "" } : judge(text, pages);
       const out = path.join(KDIR, folder, `${rel}.txt`);
       await mkdir(path.dirname(out), { recursive: true });
       await writeFile(out, `# ${rel}\n# source: library/${folder}/${rel}\n# status: ${verdict.status}\n\n${text}`);

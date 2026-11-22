@@ -169,9 +169,33 @@ async function libraryContext(messages, { compact = false, voice = false } = {})
   // a spoken answer needs less to read: every token read on a laptop GPU delays the first word (~130 tokens/s hot)
   const opts = voice ? { limit: 2, snippetLen: 420 } : compact ? { limit: 3, snippetLen: 700 } : { limit: 6, snippetLen: 1400 };
   // the search also crosses languages by sound (English/Tamil question -> Hindi books), see sound-search.js
-  const { results } = await knowledge.search(q, opts);
+  let { results } = await knowledge.search(q, opts);
+  // A question in Hindi, Marathi, Tamil… also searches the ENGLISH translations: it is translated to English offline
+  // (cached; at most 2.5 s, otherwise skipped) and the English passages come first, because the local model explains
+  // far better from a translation than from the Sanskrit original (which it may misread).
+  if (!/[A-Za-z]{3}/.test(q) && translator.enabled) {
+    try {
+      const en = await Promise.race([translator.translate(q, "en"), new Promise((r) => setTimeout(() => r(null), 2500))]);
+      if (en && en !== q && /[A-Za-z]{3}/.test(en)) {
+        const eng = (await knowledge.search(en, { ...opts, crossLang: false })).results.filter((r) => !/[ऀ-ॿ]/.test(r.text.slice(0, 300)));
+        const merged = [], seen = new Set();
+        for (let i = 0; i < Math.max(eng.length, results.length); i++) {
+          for (const r of [eng[i], results[i]]) if (r && !seen.has(r.id + "|" + (r.ref ?? r.page) + "|" + r.text.slice(0, 30))) { seen.add(r.id + "|" + (r.ref ?? r.page) + "|" + r.text.slice(0, 30)); merged.push(r); }
+        }
+        results = merged.slice(0, opts.limit);
+        if (process.env.DEBUG_BRAIN) console.log(`[search] also in English: "${en}"`);
+      }
+    } catch (e) { console.error("[search en]", e.message); }
+  }
+  // a verse asked by its number ("Gita 2.47", "कठोपनिषद् 1.2") comes first, exactly
+  let verseNote = "";
+  try {
+    const v = await knowledge.verse(q);
+    if (v && !v.missing) { results.unshift(v); if (results.length > opts.limit) results.length = opts.limit; }
+    else if (v?.missing) verseNote = `The user asked for ${v.ref}, but that verse number is not in the library's text of "${v.book}". Say so kindly; never invent a verse for that number.\n\n`;
+  } catch (e) { console.error("[verse]", e.message); }
   const kw = "";
-  if (process.env.DEBUG_BRAIN) console.log(`[search] "${q.slice(0, 60)}" -> ${results.map((r) => `${r.book} p${r.page}${r.by ? " (" + r.by + ")" : ""}`).join("; ") || "nothing"}`);
+  if (process.env.DEBUG_BRAIN) console.log(`[search] "${q.slice(0, 60)}" -> ${results.map((r) => `${r.book} ${r.ref || "p" + r.page}${r.by ? " (" + r.by + ")" : ""}`).join("; ") || "nothing"}`);
 
   // what he has UNDERSTOOD from his study of the texts (understand.js): explained teachings, concepts, answers
   let understood = "";
@@ -189,17 +213,17 @@ async function libraryContext(messages, { compact = false, voice = false } = {})
     }
   } catch (e) { console.error("[understanding]", e.message); }
 
-  if (!results.length && !understood) return null;
+  if (!results.length && !understood) return verseNote || null;
   const passages = results.map((r, i) =>
-    `<passage index="${i + 1}" book="${r.book}"${r.page ? ` page="${r.page}"` : ""}>\n${r.text}\n</passage>`).join("\n");
-  return (understood
+    `<passage index="${i + 1}" book="${r.book}"${r.ref ? ` place="${r.ref}"` : r.page ? ` page="${r.page}"` : ""}>\n${r.text}\n</passage>`).join("\n");
+  return verseNote + (understood
     ? "Your own understanding of texts in your library, built earlier by studying each text in full. Use it to explain the meaning, " +
       "not just quote; connect ideas across texts where it helps. Cite as (Text name, page N).\n\n" +
       `<my_understanding>\n${understood}\n</my_understanding>\n\n`
     : "") +
     (results.length
       ? "Passages from books in Krishna Sakha's own library that may relate to the user's latest message. " +
-        "Some were read by OCR and may contain misread words. Use them when relevant and cite them as (Book name, page N). " +
+        "Some were read by OCR and may contain misread words. Use them when relevant and cite them as (Book name, page N), or by the place shown for scriptures, e.g. (Katha Upanishad 2.18) or (Rigveda 1.1). Sanskrit passages are the original text: quote a short line only when it helps, then explain it in the user's language. " +
         `<library_passages>\n${passages}\n</library_passages>\n\n`
       : "") +
     "If none of this answers the question, say what the library doesn't cover and answer from general knowledge, clearly marked as such.";
@@ -399,7 +423,7 @@ async function handleChat(req, res) {
     // ...and plain-text labels instead of XML tags: a small model copies tags like <passage index="1"> into its answer
     const ctxText = ctx && ctx.slice(0, ctxChars)
       .replace(/\((Book|Text) name, page N\)/g, "(the exact book title from the passage, its page number)")
-      .replace(/<passage index="\d+" book="([^"]*)"(?: page="([^"]*)")?>/g, (m, b, p) => `--- From the book "${b}"${p ? `, page ${p}` : ""}:`)
+      .replace(/<passage index="\d+" book="([^"]*)"(?: place="([^"]*)")?(?: page="([^"]*)")?>/g, (m, b, pl, p) => `--- From "${b}"${pl ? `, ${pl}` : p ? `, page ${p}` : ""}:`)
       .replace(/<understood text="([^"]*)" kind="[^"]*"(?: pages="([^"]*)")?>/g, (m, t, p) => `--- What I understood from "${t}"${p ? ` (pages ${p})` : ""}:`)
       .replace(/<understanding_of_text title="([^"]*)">/g, (m, t) => `--- My understanding of the whole text "${t}":`)
       .replace(/<page book="([^"]*)" number="([^"]*)">/g, (m, b, n) => `--- Page ${n} of "${b}":`)
@@ -748,8 +772,11 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { markdown: md, summary: SUMMARY_RE.test(q) });
     }
     if (req.method === "GET" && url.pathname === "/api/knowledge/search") {
-      const q = url.searchParams.get("q") || "";
-      return sendJson(res, 200, await knowledge.search(q, { book: url.searchParams.get("book") || "" }));
+      const q = (url.searchParams.get("q") || "").slice(0, 300);
+      const found = await knowledge.search(q, { book: url.searchParams.get("book") || "" });
+      const v = await knowledge.verse(q).catch(() => null);
+      if (v && !v.missing) found.results.unshift(v);
+      return sendJson(res, 200, found);
     }
     if (req.method === "POST" && (url.pathname === "/api/learner/pause" || url.pathname === "/api/learner/resume")) {
       // owner only: same password as the Library

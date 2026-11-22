@@ -105,6 +105,24 @@ export function createKnowledge(learner, titler = null) {
     if (hit && hit.mtime === s.mtimeMs) return hit.chunks;
     const raw = (await readFile(file, "utf8")).replace(/^#.*\n/gm, "");
     const chunks = [];
+    // Clean scripture files mark every hymn / chapter / section: "[ref Rigveda 1.1]". Each becomes passages that
+    // carry that exact place (long sections are split at verse or paragraph ends, all keeping the same ref).
+    if (/\n\[ref [^\]\n]+\]\n/.test("\n" + raw.slice(0, 20000))) {
+      const sec = ("\n" + raw).split(/\n\[ref ([^\]\n]+)\]\n/);
+      for (let i = 1; i < sec.length; i += 2) {
+        const ref = sec[i].trim(), body = (sec[i + 1] || "").trim();
+        if (!body) continue;
+        let buf = "";
+        const push = () => { const t = buf.trim(); if (t) chunks.push({ page: null, ref, text: t, lower: fold(t) }); buf = ""; };
+        for (const piece of body.split(/\n(?=\S)/)) {          // a verse line or a paragraph
+          if ((buf + piece).length > 1400 && buf.length > 300) push();
+          buf += piece + "\n";
+        }
+        push();
+      }
+      cache.set(id, { mtime: s.mtimeMs, chunks });
+      return chunks;
+    }
     // pages of books ([page 12]) or times in recordings ([time 12:34])
     const parts = raw.split(/\n?\[(?:page|time) ([\d:]+)\]\n/);
     if (parts.length > 1) {
@@ -225,7 +243,7 @@ export function createKnowledge(learner, titler = null) {
     }
     hits.sort((a, b) => b.score - a.score);
     let results = hits.slice(0, limit).map((h) => ({
-      book: titleOf(h.id), id: h.id, page: h.c.page,
+      book: titleOf(h.id), id: h.id, page: h.c.page, ref: h.c.ref || null,
       text: snippet(h.c.text, h.c.lower, words, snippetLen),
       score: Math.round(h.score * 10) / 10,
     }));
@@ -235,7 +253,7 @@ export function createKnowledge(learner, titler = null) {
       const extra = await soundSearch(q, { ids, limit, snippetLen });
       const seen = new Set(), merged = [];
       for (let i = 0; i < Math.max(results.length, extra.length); i++) {
-        for (const r of [results[i], extra[i]]) if (r && !seen.has(r.id + "|" + r.page)) { seen.add(r.id + "|" + r.page); merged.push(r); }
+        for (const r of [results[i], extra[i]]) if (r && !seen.has(r.id + "|" + (r.page ?? r.ref) + "|" + r.text.slice(0, 40))) { seen.add(r.id + "|" + (r.page ?? r.ref) + "|" + r.text.slice(0, 40)); merged.push(r); }
       }
       results = merged.slice(0, limit);
     }
@@ -279,7 +297,7 @@ export function createKnowledge(learner, titler = null) {
       const at = Math.min(...words.map((w) => h.c.sound.indexOf(w)).filter((i) => i >= 0));
       const start = Math.max(0, Math.floor((at / h.c.sound.length) * h.c.text.length) - Math.floor(snippetLen / 3));
       const s = h.c.text.slice(start, start + snippetLen).replace(/\s+/g, " ").trim();
-      return { book: titleOf(h.id), id: h.id, page: h.c.page, text: (start > 0 ? "… " : "") + s + " …", score: Math.round(h.score * 10) / 10, by: "sound" };
+      return { book: titleOf(h.id), id: h.id, page: h.c.page, ref: h.c.ref || null, text: (start > 0 ? "… " : "") + s + " …", score: Math.round(h.score * 10) / 10, by: "sound" };
     });
   }
 
@@ -466,7 +484,51 @@ export function createKnowledge(learner, titler = null) {
     return null;
   }
 
-  return { books, search, summarize, findBook, titleOf, terms, fold, pageText, bookForPage };
+  // ---------- exact verse lookup: "Gita 2.47", "कठोपनिषद् 1.2", "Rigveda 1.1.1", "Yoga Sutra 1.2" ----------
+  // The Sanskrit texts carry every verse's number ("॥ 2.47 ॥"), so a verse asked by its number is found exactly,
+  // instead of searching for the word "47". Each alias names the start of a Sanskrit library title.
+  const VERSE_BOOKS = [
+    [/\b(bhagavad ?g[iī]t[aā]|g[iī]t[aā])\b|गीता/i, "Bhagavad Gita"],
+    [/\brig ?veda|\brgveda|\bṛgveda|ऋग्वेद/i, "Rigveda"], [/atharva ?veda|अथर्ववेद/i, "Atharvaveda"], [/s[aā]ma ?veda|सामवेद/i, "Samaveda"],
+    [/\bkatha\b|kathopanishad|कठ/i, "Katha Upanishad"], [/\b[iī][sś]h?a\b|isha ?upanishad|ईश/i, "Isha Upanishad"],
+    [/mand[uū]kya ?k[aā]rik[aā]|गौडपाद/i, "Gaudapada"], [/m[aā]nd[uū]kya|माण्डूक्य|मांडूक्य/i, "Mandukya Upanishad"],
+    [/prash?na|प्रश्न/i, "Prashna Upanishad"], [/aitareya|ऐतरेय/i, "Aitareya Upanishad"], [/ch[aā]ndogya|छान्दोग्य|छांदोग्य/i, "Chandogya"],
+    [/b[rṛ]ihad[aā]ra[nṇ]yaka|बृहदारण्यक/i, "Brihadaranyaka"], [/shvet[aā]shvatara|svetasvatara|श्वेताश्वतर/i, "Shvetashvatara"],
+    [/kaivalya|कैवल्य/i, "Kaivalya"], [/yoga ?s[uū]tra|योगसूत्र|योग सूत्र|patanjali|पतञ्जलि|पतंजलि/i, "Yoga Sutras"],
+    [/brahma ?s[uū]tra|ब्रह्मसूत्र|ब्रह्म सूत्र/i, "Brahma Sutras"], [/hatha ?yoga|हठयोग|हठ योग/i, "Hatha Yoga"],
+    [/bh[aā]gavata|भागवत/i, "Bhagavata Purana"], [/r[aā]m[aā]ya[nṇ]a|रामायण/i, "Valmiki Ramayana"],
+    [/mah[aā]bh[aā]rata|महाभारत/i, "Mahabharata"], [/vishnu pur[aā]na|विष्णु ?पुराण/i, "Vishnu Purana"],
+    [/vivekach[uū]d[aā]ma[nṇ]i|विवेकचूडामणि/i, "Vivekachudamani"], [/s[aā][nṃ]khya ?k[aā]rik[aā]|सांख्यकारिका/i, "Samkhya Karika"],
+    [/devi ?g[iī]t[aā]|देवी ?गीता/i, "Devi Gita"],
+  ];
+  const toLatinDigits = (s) => s.replace(/[०-९]/g, (d) => String(d.charCodeAt(0) - 0x966));
+  async function verse(q) {
+    const s = toLatinDigits(String(q || ""));
+    let nums = (s.match(/(\d{1,3})\s*[.:,]\s*(\d{1,4})(?:\s*[.:,]\s*(\d{1,4}))?(?:\s*[.:,]\s*(\d{1,4}))?/) || []).slice(1).filter(Boolean);
+    if (!nums.length) {   // "chapter 2 verse 47", "अध्याय 2 श्लोक 47"
+      const m = s.match(/(?:chapter|adhy[aā]ya|canto|mandala|book|अध्याय|मंडल|मण्डल|स्कन्ध)\s*(\d{1,3})\D{1,25}?(?:verse|shloka|sloka|sutra|hymn|sukta|श्लोक|सूत्र|सूक्त|मंत्र|मन्त्र)\s*(\d{1,4})/i);
+      if (m) nums = [m[1], m[2]];
+    }
+    if (!nums.length) return null;
+    const hit = VERSE_BOOKS.find(([re]) => re.test(s));
+    if (!hit) return null;
+    const want = nums.map(Number).join(".");
+    const book = books().find((b) => b.searchable && b.title.startsWith(hit[1]) && /\(Sanskrit/.test(b.title))
+      || books().find((b) => b.searchable && b.title.includes(hit[1]) && /sanskrit/i.test(b.id));
+    if (!book) return null;
+    const mark = `॥ ${want} ॥`;
+    for (const c of await chunksOf(book.id)) {
+      const at = c.text.indexOf(mark);
+      if (at < 0) continue;
+      // the verse itself: everything after the previous verse's number mark, up to and including its own mark
+      const prev = [...c.text.slice(0, at).matchAll(/॥ [\d.]+ ॥/g)].pop();
+      const text = c.text.slice(prev ? prev.index + prev[0].length : 0, at + mark.length).trim();
+      return { book: titleOf(book.id), id: book.id, ref: `${hit[1]} ${want}`, page: null, text, verse: want, by: "verse" };
+    }
+    return { book: titleOf(book.id), id: book.id, ref: `${hit[1]} ${want}`, missing: true };
+  }
+
+  return { books, search, summarize, findBook, titleOf, terms, fold, pageText, bookForPage, verse };
 }
 
 // "page 65", "pg no 65", "p. 65", "पेज 65", "पृष्ठ 65", "पेज नंबर 65", "65वें पेज", "पान 65" (Marathi) …
