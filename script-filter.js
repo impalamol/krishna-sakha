@@ -36,6 +36,25 @@ const NAME_FIXES = [
   [/साठ्यनारायण|सत्यानारायण|सत्यनारायन|सत्यनाराय़ण|सत्य नारायण(?=\s+(?:कथा|व्रत|पूजा|भगवान))/g, "सत्यनारायण"],
 ];
 const fixName = (s) => NAME_FIXES.reduce((t, [re, to]) => t.replace(re, to), s);
+
+// English words that a small model writes in Devanagari when it translates an English passage word by word
+// ("फादराने आणि आईने…"): put back the real Marathi / Hindi word, with its ending
+const END = "(?=[\\s,।.!?:;)\"”'’]|$)";
+const LOAN_FIXES = {
+  marathi: [
+    [new RegExp(`फादरा?(?:ने|नी)${END}`, "g"), "वडिलांनी"], [new RegExp(`फादरा?ला${END}`, "g"), "वडिलांना"],
+    [new RegExp(`फादरा?(च[ेाी])${END}`, "g"), "वडिलां$1"], [new RegExp(`फादर${END}`, "g"), "वडील"],
+    [new RegExp(`मदरा?ने${END}`, "g"), "आईने"], [new RegExp(`मदरा?ला${END}`, "g"), "आईला"],
+    [new RegExp(`मदरा?(च[ेाी])${END}`, "g"), "आई$1"], [new RegExp(`मदर${END}`, "g"), "आई"],
+    [new RegExp(`(?:गॉड|गाॅड)${END}`, "g"), "देव"], [new RegExp(`लॉर्ड${END}`, "g"), "भगवान"],
+  ],
+  hindi: [
+    [new RegExp(`फादर${END}`, "g"), "पिता"], [new RegExp(`मदर${END}`, "g"), "माता"],
+    [new RegExp(`(?:गॉड|गाॅड)${END}`, "g"), "भगवान"], [new RegExp(`लॉर्ड${END}`, "g"), "भगवान"],
+  ],
+};
+// a garbled name of Agni seen in answers retold from Oldenberg's "Gâtavedas" (= Jātavedas)
+NAME_FIXES.push([/(?:गवेदास|गातवेदस|गातवेदास)(?=[\s,।.!?:;)"”'’]|$)/g, "जातवेदस्"]);
 // the first word of his name at the very end of what is ready to send: wait for the next word
 const NAME_START = /(?:कृष्णा?|Krishna|কৃষ্ণ)\s*$/;
 
@@ -53,6 +72,7 @@ const ENDS_WITH_PAGE = new RegExp(`(?:${PAGE_WORD})\\s*$`, "iu");
 export function createScriptFilter(langName, { allowedPages = null } = {}) {
   const key = scriptFor(langName);
   const own = key && SCRIPTS[key];
+  const loans = LOAN_FIXES[(langName.toLowerCase().match(/marathi|hindi/) || [])[0]] || null;
   let buf = "", last = "\n", depth = 0, kept = 0, removed = 0;
   const checkPages = (s) => !allowedPages ? s : s.replace(PAGE_RE, (m, pre, a, b) =>
     allowedPages.has(a) && (!b || allowedPages.has(b)) ? m : "");
@@ -90,8 +110,12 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
   // transliterated sentence has ordinary lowercase words: "tumchaa mula mitra")
   // ...and a short Roman gloss after a word ("ध्यान (Dhyan)", "सत्संग (Sat sang)") adds nothing either; a bracket
   // with a number or a book word is a citation and stays
-  const CITE = /\d|gita|veda|upanishad|purana|sutra|ramayana|mahabharata|tantra|brahmana|samhita|smriti|katha|page|verse|chapter/i;
+  // (a book word must start a word: "Gâtavedas" is a name, not a citation of a Veda)
+  const CITE = /\d|\b(?:gita|veda|upanishad|purana|sutra|ramayana|mahabharata|tantra|brahmana|samhita|smriti|katha|page|verse|chapter)/i;
   const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,800})\)/g, (m, inner) => {
+    // a short gloss with accented Roman letters ("(Gâtavedas)", "(Śiva)") is a transliteration too
+    if (!ownOnce.test(inner) && !CITE.test(inner) && /^[\sA-Za-zÀ-ɏḀ-ỿ'’-]+$/u.test(inner) && /[À-ɏḀ-ỿ]/u.test(inner)
+      && inner.trim().split(/\s+/).length <= 4) return "";
     // a long bracket that is mostly Roman letters is a transliteration even if a stray Indian letter slipped in
     const lat = (inner.match(/[A-Za-z]/g) || []).length, all = (inner.match(/\p{L}/gu) || []).length || 1;
     if ((inner.match(/[A-Za-z]{2,}/g) || []).length >= 6 && lat / all > 0.8 && !CITE.test(inner)) return "";
@@ -104,6 +128,7 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
 
   const clean = (s) => {
     let out = fixName(dropRoman(tidy(checkPages(s))));
+    if (loans) out = loans.reduce((t, [re, to]) => t.replace(re, to), out);
     if (key) out = out.split(/(\s+)/).map((part) => /^\s+$/.test(part) ? part : cleanWord(part)).join("");
     out = tidy(out).replace(/[ \t]{2,}/g, " ").replace(/ +([,.!?;:।॥،۔؟])/g, "$1");
     if (/[ \t]$/.test(last) || last === "\n") out = out.replace(/^[ \t]+/, "");
