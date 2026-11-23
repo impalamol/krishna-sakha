@@ -426,5 +426,13 @@ export function createUnderstanding({ client, knowledge, learner, rootDir, model
     return { ...now, understood, byLocal, total: searchable };
   }
 
-  return { run, trigger, relevant, of, status };
+  /** The texts he has fully studied (understanding notes written), newest first: [{ id, title, at }] */
+  async function studied() {
+    await loadIndex();
+    return Object.entries(index).filter(([, e]) => e.file && e.v === VERSION)
+      .map(([id, e]) => ({ id, title: knowledge.titleOf(id), at: e.at || e.updated || 0 }))
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  }
+
+  return { run, trigger, relevant, of, status, studied };
 }

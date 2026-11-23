@@ -91,7 +91,10 @@ export function createScriptFilter(langName, { allowedPages = null } = {}) {
   // ...and a short Roman gloss after a word ("ध्यान (Dhyan)", "सत्संग (Sat sang)") adds nothing either; a bracket
   // with a number or a book word is a citation and stays
   const CITE = /\d|gita|veda|upanishad|purana|sutra|ramayana|mahabharata|tantra|brahmana|samhita|smriti|katha|page|verse|chapter/i;
-  const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,300})\)/g, (m, inner) => {
+  const dropRoman = (s) => !key ? s : s.replace(/\s*\(([^()\n]{0,800})\)/g, (m, inner) => {
+    // a long bracket that is mostly Roman letters is a transliteration even if a stray Indian letter slipped in
+    const lat = (inner.match(/[A-Za-z]/g) || []).length, all = (inner.match(/\p{L}/gu) || []).length || 1;
+    if ((inner.match(/[A-Za-z]{2,}/g) || []).length >= 6 && lat / all > 0.8 && !CITE.test(inner)) return "";
     if (ownOnce.test(inner)) return m;
     const latin = (inner.match(/[A-Za-z]{2,}/g) || []).length;
     if (latin >= 3 && (inner.match(/(?:^|[\s,])[a-z]{2,}/g) || []).length >= 2) return "";   // a transliterated sentence

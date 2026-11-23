@@ -18,7 +18,7 @@ import { createTTS } from "./tts.js";
 import { createTranslator } from "./translate.js";
 import { createProSummary } from "./pro-summary.js";
 import { createUnderstanding } from "./understand.js";
-import { answerFromLibrary, summaryMarkdown, summaryStream, pickLang, smallTalk, GREETING, warmSmallTalk } from "./library-answer.js";
+import { answerFromLibrary, summaryMarkdown, summaryStream, pickLang, smallTalk, GREETING, warmSmallTalk, STUDIED_Q, LIST_BOOKS, redoLanguage } from "./library-answer.js";
 import { createLocalBrain } from "./local-brain.js";
 import { createScriptFilter, scriptFor } from "./script-filter.js";
 import { englishFromDevanagari } from "./deva-english.js";
@@ -375,6 +375,24 @@ async function handleChat(req, res) {
     const en = englishFromDevanagari(last.content.slice(tags.length));
     if (en) { if (process.env.DEBUG_BRAIN) console.log(`[voice] English heard in Devanagari -> "${en}"`); last.content = tags + en; }
   }
+  // "Now explain it in Marathi" / "मराठीत सांगा": the previous answer again, in that language (no new search).
+  // "Explain karma in Marathi": a new question, answered in Marathi.
+  let followUp = null;
+  {
+    const last = messages[messages.length - 1];
+    const tags = (last.content.match(/^(?:\[[A-Z ]+:[^\]]*\]\s*)+/) || [""])[0];
+    const q = last.content.slice(tags.length).trim();
+    const keep = tags.replace(/\[REPLY IN:[^\]]*\]\s*/gi, "");   // the newly asked language replaces the sidebar's
+    const lang = redoLanguage(q);
+    if (lang && messages.length >= 3 && messages[messages.length - 2].role === "assistant") {
+      followUp = lang;
+      last.content = `[REPLY IN: ${lang}] ${keep}Please say your previous answer again in ${lang.split(" (")[0]}.`;
+    } else {
+      const m = q.match(/\s(?:in|into) (marathi|hindi|english|tamil|telugu|kannada|malayalam|gujarati|bengali|bangla|punjabi|urdu|sanskrit|hinglish)(?: language)?(?: please)?\s*[.?!]*$/i);
+      const L = m && redoLanguage(`in ${m[1]}`);
+      if (L) last.content = `[REPLY IN: ${L}] ${keep}${q.slice(0, m.index).trim()}`;
+    }
+  }
   // only these three words are accepted from the page (nothing else about the person is ever sent)
   const who = ["man", "woman", "child"].includes(body?.visitor?.kind) ? body.visitor.kind : null;
 
@@ -435,8 +453,8 @@ async function handleChat(req, res) {
     const voice = body.voice === true;
     const long = /\b(detail|explain fully|in depth|long)\b|विस्तार|विस्तृत/i.test(raw);
     // a personal or emotional message is answered from the heart, not from book passages (and sooner: less to read)
-    const personal = PERSONAL_RE.test(plain) || CRISIS_RE.test(plain);
-    if (!personal) {
+    const personal = !followUp && (PERSONAL_RE.test(plain) || CRISIS_RE.test(plain));
+    if (!personal && !followUp) {
       try { ctx = await libraryContext(messages, { compact: true, voice: voice && !long }); } catch (e) { console.error("[library search]", e.message); }
     }
     const tSearch = Date.now() - tStart;
@@ -484,7 +502,8 @@ async function handleChat(req, res) {
       "specific book or page says, and never invent details of practices, verses or texts; if unsure, say so.]\n";
     const turns = messages.slice(-8).map((m, i, all) => i < all.length - 1 ? m : {
       role: "user",
-      content: (personal ? "[This is a personal message, not a question about a text. Answer as a caring, steady friend, in simple words, without quoting books or pages.]\n"
+      content: (followUp ? `[Say your previous answer (above) again in ${followUp.split(" (")[0]}: the same meaning in simple, natural words. Add no new facts, books or verse numbers.]\n`
+        : personal ? "[This is a personal message, not a question about a text. Answer as a caring, steady friend, in simple words, without quoting books or pages.]\n"
         : ctxText ? `PASSAGES FROM MY LIBRARY (use only what answers the question):\n${ctxText}\n--- End of passages.\n\n` : noLibrary) +
         (who ? `[${VISITOR_NOTE[who]}]\n` : "") +
         `[Reply in ${thinkIn}${viaTranslation ? " only (your answer will be translated for the user)" : ""}` +
@@ -546,6 +565,8 @@ async function handleChat(req, res) {
         // the question repeated back as the first line ("मला राग खूप येतो, काय करू?" …): drop it
         { const nl = held.indexOf("\n"), first = (nl < 0 ? held : held.slice(0, nl)).replace(/[\s?？!।.]+$/g, "").trim();
           if (first.length > 5 && plain.replace(/[\s?？!।.]+$/g, "").trim() === first) held = nl < 0 ? "" : held.slice(nl + 1).replace(/^\s+/, ""); }
+        // greeting HIMSELF ("कृष्ण सखा जी आपका स्वागत है।", "Krishna Sakha ji, welcome"): drop that opening sentence
+        held = held.replace(/^\s*(?:कृष्ण सखा|Krishna Sakha)(?:\s*जी|\s*ji)?[,\s]*(?:आपका|आपको|आप का|तुमचे|तुम्हाला|आपले|आपलं|welcomes?|greets?|says)[^\n।.!?]{0,60}[।.!?]\s*/i, "");
         restart = wrongStart(held);
         if (restart) return attemptCtl.abort();
         open = true; release(held); held = "";
@@ -610,7 +631,8 @@ async function handleChat(req, res) {
   // greetings, thanks, ok, bye, praise, "what is your name": a prepared reply at once, whatever brain is on
   {
     const plain = messages[messages.length - 1].content.replace(/\[[A-Z ]+:[^\]]*\]\s*/g, "").trim();
-    if (smallTalk(plain) || GREETING.test(plain)) {
+    // greetings, thanks, "who are you", "which books have you read / understood": prepared, honest answers
+    if (smallTalk(plain) || GREETING.test(plain) || STUDIED_Q.test(plain) || (LIST_BOOKS.test(plain) && plain.length < 90)) {
       try { await libraryAnswer(); } catch { send({ error: "Something went wrong." }); }
       return res.end();
     }
@@ -648,7 +670,7 @@ async function handleChat(req, res) {
   }
 
   let context = null;
-  try { context = await libraryContext(messages); } catch (e) { console.error("[library search]", e.message); }
+  if (!followUp) { try { context = await libraryContext(messages); } catch (e) { console.error("[library search]", e.message); } }
 
   const abort = new AbortController();
   res.on("close", () => abort.abort());

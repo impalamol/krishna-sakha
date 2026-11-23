@@ -10,6 +10,9 @@ const T = {
     none: "I have not found this in the books I have read so far. Try asking with other words, or ask again after I have read more books.",
     outro: "These are the exact words from the books. Once my full AI mind is switched on, I will also explain them in my own words.",
     list: "So far I have read these books:",
+    studied: (n, read) => `Honestly: I have read and can search ${read} texts, but I have fully studied (gone through from beginning to end and written my own notes on) only ${n} so far:`,
+    studiedNone: (read) => `Honestly: I have read and can search ${read} texts, but I have not yet fully studied any of them from beginning to end. My study goes slowly on this computer; the Bhagavad Gita, the principal Upanishads and the Yoga Sutras come first.`,
+    studiedMore: "I keep studying when nobody is talking to me, most important texts first.",
     reading: (f, p, n) => `Right now I am reading “${f}”${n > 1 ? `, page ${p} of ${n}` : ""}.`,
     nothing: "I have not finished reading any book yet. Please ask me again a little later.",
     hello: "🙏 Namaste! Ask me about anything in the books I have read, or ask “Which books have you read?”",
@@ -20,6 +23,9 @@ const T = {
     none: "मैंने अब तक जो पुस्तकें पढ़ी हैं, उनमें यह नहीं मिला। दूसरे शब्दों में पूछिए, या कुछ और पुस्तकें पढ़ लेने के बाद फिर पूछिए।",
     outro: "ये पुस्तकों के मूल शब्द हैं। जब मेरी पूर्ण AI बुद्धि चालू होगी, तब मैं इन्हें अपने शब्दों में भी समझाऊँगा।",
     list: "अब तक मैंने ये पुस्तकें पढ़ी हैं:",
+    studied: (n, read) => `सच कहूँ तो: मैंने ${read} ग्रंथ पढ़े हैं और उनमें खोज सकता हूँ, पर अभी तक केवल ${n} का पूरा अध्ययन (शुरू से अंत तक पढ़कर अपनी टिप्पणियाँ लिखना) किया है:`,
+    studiedNone: (read) => `सच कहूँ तो: मैंने ${read} ग्रंथ पढ़े हैं और उनमें खोज सकता हूँ, पर अभी तक किसी का भी शुरू से अंत तक पूरा अध्ययन नहीं किया है। इस कंप्यूटर पर मेरा अध्ययन धीरे चलता है; पहले भगवद्गीता, प्रमुख उपनिषद और योगसूत्र आएँगे।`,
+    studiedMore: "जब कोई मुझसे बात नहीं कर रहा होता, मैं अध्ययन करता रहता हूँ, सबसे महत्वपूर्ण ग्रंथ पहले।",
     reading: (f, p, n) => `अभी मैं “${f}” पढ़ रहा हूँ${n > 1 ? `, पृष्ठ ${p} / ${n}` : ""}।`,
     nothing: "मैंने अभी तक कोई पुस्तक पूरी नहीं पढ़ी है। कृपया थोड़ी देर बाद फिर पूछिए।",
     hello: "🙏 नमस्ते! मेरी पढ़ी हुई पुस्तकों के बारे में कुछ भी पूछिए, या पूछिए “आपने कौन-सी पुस्तकें पढ़ी हैं?”",
@@ -30,6 +36,9 @@ const T = {
     none: "मी आतापर्यंत वाचलेल्या ग्रंथांमध्ये हे मिळाले नाही. दुसऱ्या शब्दांत विचारा, किंवा मी आणखी ग्रंथ वाचल्यावर पुन्हा विचारा.",
     outro: "हे ग्रंथांमधील मूळ शब्द आहेत. माझी पूर्ण AI बुद्धी सुरू झाल्यावर मी हे माझ्या शब्दांतही समजावून सांगेन.",
     list: "आतापर्यंत मी हे ग्रंथ वाचले आहेत:",
+    studied: (n, read) => `खरं सांगायचं तर: मी ${read} ग्रंथ वाचले आहेत आणि त्यांत शोधू शकतो, पण आतापर्यंत फक्त ${n} ग्रंथांचा पूर्ण अभ्यास (सुरुवातीपासून शेवटपर्यंत वाचून माझ्या टिपा लिहिणे) केला आहे:`,
+    studiedNone: (read) => `खरं सांगायचं तर: मी ${read} ग्रंथ वाचले आहेत आणि त्यांत शोधू शकतो, पण अजून एकाही ग्रंथाचा सुरुवातीपासून शेवटपर्यंत पूर्ण अभ्यास केलेला नाही. या संगणकावर माझा अभ्यास हळू चालतो; आधी भगवद्गीता, प्रमुख उपनिषदे आणि योगसूत्रे.`,
+    studiedMore: "कोणी माझ्याशी बोलत नसताना मी अभ्यास करत राहतो, सर्वांत महत्त्वाचे ग्रंथ आधी.",
     reading: (f, p, n) => `सध्या मी “${f}” वाचत आहे${n > 1 ? `, पान ${p} / ${n}` : ""}.`,
     nothing: "मी अजून एकही ग्रंथ पूर्ण वाचलेला नाही. कृपया थोड्या वेळाने पुन्हा विचारा.",
     hello: "🙏 नमस्कार! मी वाचलेल्या ग्रंथांबद्दल काहीही विचारा, किंवा विचारा “तुम्ही कोणते ग्रंथ वाचले आहेत?”",
@@ -40,6 +49,9 @@ const T = {
     none: "Ab tak padhe granthon mein yeh nahi mila. Dusre shabdon mein poochiye, ya thodi der baad phir poochiye.",
     outro: "Yeh granthon ke asli shabd hain. Jab meri poori AI buddhi chalu hogi, tab main inhe apne shabdon mein bhi samjhaunga.",
     list: "Ab tak maine yeh granth padhe hain:",
+    studied: (n, read) => `Sach kahun to: maine ${read} granth padhe hain aur unmein khoj sakta hoon, par ab tak sirf ${n} ka poora adhyayan (shuru se ant tak padhkar apni tippaniyan likhna) kiya hai:`,
+    studiedNone: (read) => `Sach kahun to: maine ${read} granth padhe hain aur unmein khoj sakta hoon, par abhi tak kisi ka bhi shuru se ant tak poora adhyayan nahi kiya hai. Pehle Bhagavad Gita, pramukh Upanishad aur Yoga Sutra aayenge.`,
+    studiedMore: "Jab koi mujhse baat nahi kar raha hota, main adhyayan karta rehta hoon, sabse mahatvapurn granth pehle.",
     reading: (f, p, n) => `Abhi main “${f}” padh raha hoon${n > 1 ? `, page ${p} of ${n}` : ""}.`,
     nothing: "Maine abhi tak koi granth poora nahi padha hai. Thodi der baad phir poochiye.",
     hello: "🙏 Namaste! Mere padhe hue granthon ke baare mein kuch bhi poochiye, ya poochiye “Aapne kaun se granth padhe hain?”",
@@ -162,7 +174,24 @@ export function pickLang(raw, q) {
 }
 
 export const GREETING = /^(hi|hello|hey|namaste|namaskar|pranam|jai shri (ram|krishna)|hari om|om|नमस्ते|नमस्कार|प्रणाम|राम राम|जय श्री (राम|कृष्ण)|हरि ओम|ॐ)[\s!.,।🙏]*$/i;
-const LIST_BOOKS = /(which|what|list).*(books?|granth|texts?).*(read|studied)|(books?|granth).*(you|tum|aap).*(read|padh)|कौन.?स[ेी]? (पुस्तक|किताब|ग्रंथ)|क्या पढ़ा|(पुस्तकें|किताबें|ग्रंथ) पढ़|कोणते ग्रंथ|काय वाचले|kaun se (granth|books?)|kya padha|ग्रंथ वाचले|पुस्तकानि पठितानि|granth padhe|বই পড়েছেন|புத்தகங்களைப் படித்துள்ளீர்கள்|పుస్తకాలు చదివారు|ಪುಸ್ತಕಗಳನ್ನು ಓದಿದ್ದೀರಿ|പുസ്തകങ്ങൾ വായിച്ചു|પુસ્તકો વાંચ્યા|ਕਿਤਾਬਾਂ ਪੜ੍ਹੀਆਂ|کتابیں پڑھی/i;
+// "Now explain it in Marathi" / "मराठीत सांगा" / "हिंदी में समझाइए" / "in English please": the PREVIOUS answer again,
+// in another language (not a new search for the words "explain it")
+const LANG_WORDS = [[/marathi|मराठी/i, "Marathi"], [/hindi|हिंदी|हिन्दी/i, "Hindi"], [/english|इंग्लिश|अंग्रेज़ी|अंग्रेजी|इंग्रजी/i, "English"],
+  [/tamil|तमिल|तामिळ/i, "Tamil"], [/telugu|तेलुगु/i, "Telugu"], [/kannada|कन्नड़|कन्नड/i, "Kannada"], [/malayalam|मलयालम|मल्याळम/i, "Malayalam"],
+  [/gujarati|गुजराती/i, "Gujarati"], [/bengali|bangla|बंगाली|बांग्ला/i, "Bengali"], [/punjabi|पंजाबी/i, "Punjabi"], [/urdu|उर्दू/i, "Urdu"],
+  [/sanskrit|संस्कृत/i, "Sanskrit (with simple Hindi explanation)"], [/hinglish/i, "Hinglish (Hindi in Roman letters)"]];
+const REDO_RE = /^(?:now |ok |okay |please |can you |could you |pls )*(?:explain|say|tell|repeat|write|give|translate|answer)(?: me| us)?(?: it| this| that| the same| the above| above| your answer| the answer| that answer)?(?: again)? (?:in|into) (\S+)(?: language)?(?: please| pls)?\s*[.?!]*$|^(?:in|into) (\S+)(?: please| pls)?\s*[.?!]*$|^(?:(?:अब|यह|ये|इसे|यही|इसको|हे|आता|जरा|ज़रा|ते|त्याला)\s+)*(\S+?)\s*(?:में|मध्ये|त)\s*(?:बताओ|बताइए|बताइये|बताएं|समझाओ|समझाइए|समझाइये|बोलो|बोलिए|लिखो|लिखिए|सांगा|सांग|समजावून सांगा|समजावून सांग|लिहा)\s*[।.?!]*$|^(\S+?)(?:त|ीत)\s*(?:सांगा|सांग|समजावून सांगा|लिहा)\s*[।.?!]*$/i;
+/** "explain it in Marathi" -> "Marathi"; null when the message is not such a request */
+export function redoLanguage(q) {
+  const m = String(q || "").trim().match(REDO_RE);
+  if (!m) return null;
+  const word = m.slice(1).find(Boolean) || "";
+  return (LANG_WORDS.find(([re]) => re.test(word)) || [])[1] || null;
+}
+
+// questions about how far his STUDY has gone (not what a book says)
+export const STUDIED_Q = /\b(which|what|how many)\b.{0,30}\b(books?|texts?|scriptures?|granths?)\b.{0,40}\b(understood|understand|studied|mastered|learnt|learned)\b|\b(have you|did you)\b.{0,15}\b(understood|studied|mastered)\b.{0,30}\b(properly|fully|completely|deeply|well)\b|कौन ?सी (पुस्तक|किताब|ग्रंथ).{0,25}(समझ|अध्ययन)|(कौन से|कितने) (ग्रंथ|पुस्तकें|किताबें).{0,25}(समझ|अध्ययन)|कोणत(ा|े|ी) (ग्रंथ|पुस्तक).{0,25}(समज|अभ्यास)|kaun ?si (book|kitab|pustak|granth).{0,25}(samjh|adhyayan)/i;
+export const LIST_BOOKS = /(which|what|list).*(books?|granth|texts?).*(read|studied)|(books?|granth).*(you|tum|aap).*(read|padh)|कौन.?स[ेी]? (पुस्तक|किताब|ग्रंथ)|क्या पढ़ा|(पुस्तकें|किताबें|ग्रंथ) पढ़|कोणते ग्रंथ|काय वाचले|kaun se (granth|books?)|kya padha|ग्रंथ वाचले|पुस्तकानि पठितानि|granth padhe|বই পড়েছেন|புத்தகங்களைப் படித்துள்ளீர்கள்|పుస్తకాలు చదివారు|ಪುಸ್ತಕಗಳನ್ನು ಓದಿದ್ದೀರಿ|പുസ്തകങ്ങൾ വായിച്ചു|પુસ્તકો વાંચ્યા|ਕਿਤਾਬਾਂ ਪੜ੍ਹੀਆਂ|کتابیں پڑھی/i;
 
 // each title once (the same book can exist as two files, e.g. ".pdf" and "(1).pdf"), with its author
 const uniqueTitles = (books) => [...new Map(books.map((b) => [b.title.toLowerCase(), b.author ? `${b.title} — ${b.author}` : b.title])).values()];
@@ -327,6 +356,16 @@ export async function answerFromLibrary(messages, { knowledge, learner, book = "
     return done();
   }
 
+  // "Which book have you understood properly?" / "what have you studied fully?" / "कौन सी पुस्तक अच्छे से समझी?":
+  // answered honestly from his real study records, never from a passage that happens to say "understood"
+  if (STUDIED_Q.test(q)) {
+    const read = knowledge.books().filter((b) => b.searchable).length;
+    const finished = understanding ? await understanding.studied() : [];
+    if (!finished.length) { put(await w("studiedNone", read)); return done(); }
+    const names = [...new Set(finished.map((d) => d.title))];
+    put(`${await w("studied", names.length, read)}\n\n${names.slice(0, 30).map((x) => `- ${x}`).join("\n")}\n\n${await w("studiedMore")}`);
+    return done();
+  }
   if (LIST_BOOKS.test(q)) {
     const read = knowledge.books().filter((b) => b.searchable);
     const s = learner.status();
